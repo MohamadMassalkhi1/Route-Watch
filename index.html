@@ -514,10 +514,13 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
 
 // Firebase config placeholder - replace with values from your Firebase console
 const FIREBASE_CONFIG = {
-  apiKey: 'YOUR_FIREBASE_API_KEY',
-  authDomain: 'YOUR_FIREBASE_AUTH_DOMAIN',
-  projectId: 'YOUR_FIREBASE_PROJECT_ID',
-  // storageBucket, messagingSenderId, appId optional
+  apiKey: "AIzaSyB5YwJ_qgGFsiJiSGuThHIFnII_aPijUWE",
+  authDomain: "route-watch.firebaseapp.com",
+  projectId: "route-watch",
+  storageBucket: "route-watch.firebasestorage.app",
+  messagingSenderId: "806133473541",
+  appId: "1:806133473541:web:3e5d5a14369b08c98e976c",
+  measurementId: "G-MKKQBHF4XR"
 };
 
 // If you prefer server-side admin via Netlify (recommended for production),
@@ -525,7 +528,7 @@ const FIREBASE_CONFIG = {
 const FIRESTORE_ADMIN_PROXY = '/.netlify/functions/firestore-admin';
 
 // Netlify function proxy (set to '/.netlify/functions/analyze' after deploy)
-const CLAUDE_PROXY = 'YOUR_NETLIFY_FUNCTION_URL'; // e.g. /.netlify/functions/analyze
+const CLAUDE_PROXY = '/.netlify/functions/analyze'; // e.g. /.netlify/functions/analyze
 const RESOLVE_THRESHOLD = 50; // votes needed to auto-resolve
 
 // ══════════════════════════════════════════════════════════════════════════
