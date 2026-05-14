@@ -520,6 +520,10 @@ const FIREBASE_CONFIG = {
   // storageBucket, messagingSenderId, appId optional
 };
 
+// If you prefer server-side admin via Netlify (recommended for production),
+// set this to '/.netlify/functions/firestore-admin' and add FIREBASE_ADMIN_JSON in Netlify env.
+const FIRESTORE_ADMIN_PROXY = '/.netlify/functions/firestore-admin';
+
 // Netlify function proxy (set to '/.netlify/functions/analyze' after deploy)
 const CLAUDE_PROXY = 'YOUR_NETLIFY_FUNCTION_URL'; // e.g. /.netlify/functions/analyze
 const RESOLVE_THRESHOLD = 50; // votes needed to auto-resolve
@@ -592,6 +596,16 @@ function subscribeRealtimeFirestore() {
 
 // Firestore helpers
 async function insertIssue(issue) {
+  // If server-side admin proxy is configured, use it to create the issue
+  if (typeof FIRESTORE_ADMIN_PROXY !== 'undefined' && FIRESTORE_ADMIN_PROXY) {
+    const id = String(issue.id || Date.now());
+    const payload = Object.assign({}, issue, { id: Number(id) });
+    const res = await fetch(FIRESTORE_ADMIN_PROXY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ op: 'create', issue: payload })
+    });
+    return await res.json();
+  }
   if (!firestore) throw new Error('Firestore not initialized');
   const id = String(issue.id || Date.now());
   const docRef = firestore.collection('issues').doc(id);
@@ -614,6 +628,13 @@ async function insertIssue(issue) {
 }
 
 async function incrementVotes(id) {
+  if (typeof FIRESTORE_ADMIN_PROXY !== 'undefined' && FIRESTORE_ADMIN_PROXY) {
+    await fetch(FIRESTORE_ADMIN_PROXY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ op: 'incVotes', id })
+    });
+    return;
+  }
   if (!firestore) throw new Error('Firestore not initialized');
   const ref = firestore.collection('issues').doc(String(id));
   await firestore.runTransaction(async tx => {
@@ -625,6 +646,13 @@ async function incrementVotes(id) {
 }
 
 async function incrementResolveVotes(id, threshold) {
+  if (typeof FIRESTORE_ADMIN_PROXY !== 'undefined' && FIRESTORE_ADMIN_PROXY) {
+    await fetch(FIRESTORE_ADMIN_PROXY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ op: 'incResolve', id, threshold })
+    });
+    return;
+  }
   if (!firestore) throw new Error('Firestore not initialized');
   const ref = firestore.collection('issues').doc(String(id));
   await firestore.runTransaction(async tx => {
