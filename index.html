@@ -677,15 +677,40 @@ async function fetchIssues(limit = 500) {
 }
 
 function dbRowToIssue(row) {
-  const created = new Date(row.created_at);
+  // created_at may be an ISO string, a number, or a Firestore Timestamp object.
+  let createdDate = null;
+  try {
+    if (!row || !row.created_at) createdDate = new Date();
+    else if (typeof row.created_at === 'string' || typeof row.created_at === 'number') {
+      createdDate = new Date(row.created_at);
+    } else if (typeof row.created_at.toDate === 'function') {
+      // Firestore Timestamp
+      createdDate = row.created_at.toDate();
+    } else if (row.created_at.seconds) {
+      // fallback for raw timestamp-like object
+      createdDate = new Date(row.created_at.seconds * 1000);
+    } else {
+      createdDate = new Date();
+    }
+  } catch (e) {
+    createdDate = new Date();
+  }
   const now = new Date();
-  const daysAgo = Math.floor((now - created) / 86400000);
+  const daysAgo = Math.max(0, Math.floor((now - createdDate) / 86400000));
   return {
-    id: row.id, type: row.type, sev: row.severity, city: row.city,
-    lat: row.lat, lng: row.lng, addr: row.addr, desc: row.description,
-    votes: row.votes || 0, resolved: row.resolved || false,
-    resolveVotes: row.resolve_votes || 0, daysAgo,
-    createdAt: row.created_at,
+    id: typeof row.id === 'string' ? Number(row.id) : row.id,
+    type: row.type,
+    sev: row.severity,
+    city: row.city,
+    lat: row.lat,
+    lng: row.lng,
+    addr: row.addr,
+    desc: row.description,
+    votes: row.votes || 0,
+    resolved: row.resolved || false,
+    resolveVotes: row.resolve_votes || 0,
+    daysAgo,
+    createdAt: createdDate.toISOString(),
   };
 }
 
@@ -783,6 +808,8 @@ const STRINGS = {
     toastPickSev:'⚠️ Please select a severity level',
     toastSaved:'✅ Saved to database',
     toastSaveError:'⚠️ Saved locally (DB offline)',
+    toastSaveFailed:'⚠️ Failed to save to database',
+    toastNoDbConfigured:'⚠️ Database not configured',
     searchPh:'Search address, type…',
   },
   fr: {
@@ -835,6 +862,8 @@ const STRINGS = {
     toastPickSev:'⚠️ Sélectionnez un niveau de gravité',
     toastSaved:'✅ Enregistré dans la base de données',
     toastSaveError:'⚠️ Sauvegardé localement (BD hors ligne)',
+    toastSaveFailed:'⚠️ Échec de l\'enregistrement dans la base de données',
+    toastNoDbConfigured:'⚠️ Base de données non configurée',
     searchPh:'Recherche adresse, type…',
   }
 };
@@ -1025,19 +1054,23 @@ async function submitReport() {
     createdAt: new Date().toISOString(),
   };
 
-  // Save to configured DB (Firestore wrapper) or fallback locally
+  // Force Firestore-only persistence. If DB is not configured or write fails,
+  // show an error and do NOT save locally.
   if (db && db.insertIssue) {
     try {
       await db.insertIssue(issue);
       showToast(t('toastSaved'), 'success');
     } catch (e) {
-      console.error(e);
-      issues.unshift(issue); // fallback local
-      showToast(t('toastSaveError'), '');
+      console.error('Failed to save to Firestore', e);
+      showToast(t('toastSaveFailed'), 'error');
+      btn.disabled = false;
+      return; // do not save locally
     }
   } else {
-    issues.unshift(issue);
-    showToast(t('toastSubmitted'), 'success');
+    // DB not configured — refuse to save locally
+    showToast(t('toastNoDbConfigured'), 'error');
+    btn.disabled = false;
+    return;
   }
 
   // Reset form
