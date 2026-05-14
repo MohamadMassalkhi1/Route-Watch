@@ -9,9 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Firebase (optional alternative to Supabase) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
@@ -25,7 +22,6 @@
 html,body{height:100%;overflow:hidden}
 body{font-family:'Instrument Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
 
-/* ── HEADER ── */
 header{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1000;gap:12px}
 .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
@@ -45,10 +41,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 9px;font-size:14px;cursor:pointer;transition:all .12s}
 .icon-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-/* ── MAIN ── */
 .main{display:flex;flex:1;overflow:hidden}
-
-/* ── MAP ── */
 #map{flex:1;position:relative}
 .map-controls{position:absolute;top:12px;left:12px;z-index:900;display:flex;flex-direction:column;gap:7px}
 .map-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:'Instrument Sans',sans-serif;font-weight:600;display:flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4)}
@@ -58,7 +51,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .mode-banner.visible{display:flex}
 @keyframes pulseBorder{0%,100%{box-shadow:0 0 0 0 rgba(245,200,66,.3)}50%{box-shadow:0 0 0 6px rgba(245,200,66,0)}}
 
-/* ── PANEL ── */
 .panel{width:var(--panel-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
 .panel-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
 .tab{flex:1;padding:11px 6px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
@@ -69,7 +61,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .tab-content::-webkit-scrollbar{width:3px}
 .tab-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-/* ── SEARCH + SORT ── */
 .search-wrap{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13px;padding:8px 12px 8px 32px;outline:none;transition:border .15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237a8099' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center}
 .search-input:focus{border-color:var(--accent)}
@@ -82,7 +73,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .city-pill.ott.active{background:rgba(232,82,58,.2);border-color:var(--accent2);color:var(--accent2)}
 .city-pill.gat.active{background:rgba(91,141,238,.2);border-color:var(--accent4);color:var(--accent4)}
 
-/* ── FEED ── */
 .feed-header{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .feed-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:8px}
 .filter-row{display:flex;gap:5px;flex-wrap:wrap}
@@ -98,7 +88,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .empty-state .es-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:6px;color:var(--text)}
 .empty-state .es-sub{font-size:13px;line-height:1.6}
 
-/* ── ISSUE CARD ── */
 .issue-card{padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;position:relative}
 .issue-card:hover{background:var(--surface2)}
 .issue-card.highlighted{background:var(--surface2);border-left:3px solid var(--accent)}
@@ -124,7 +113,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .resolve-poll-fill{height:100%;background:var(--accent3);border-radius:2px;transition:width .4s}
 .resolve-poll-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;display:flex;justify-content:space-between}
 
-/* ── REPORT FORM ── */
 .report-inner{padding:14px;display:flex;flex-direction:column;gap:12px}
 .form-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block}
 .form-select,.form-input,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border .15s;appearance:none}
@@ -155,7 +143,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .analyze-btn:hover{background:rgba(91,141,238,.2)}
 .info-box{background:rgba(91,141,238,.08);border:1px solid rgba(91,141,238,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:#8eb4f5;line-height:1.6;display:flex;gap:8px}
 
-/* ── STATS ── */
 .stats-inner{padding:14px;display:flex;flex-direction:column;gap:14px}
 .stats-section-title{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
 .donut-wrap{display:flex;align-items:center;gap:14px}
@@ -177,7 +164,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .ward-row:last-child{border-bottom:none}
 .ward-score{font-family:'DM Mono',monospace;font-weight:600;font-size:13px}
 
-/* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;animation:modalIn .22s ease}
@@ -188,7 +174,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .modal-close:hover{color:var(--text)}
 .modal-body{padding:16px 18px}
 
-/* ── AI ── */
 .ai-banner{background:linear-gradient(135deg,rgba(91,141,238,.12),rgba(76,175,140,.08));border:1px solid rgba(91,141,238,.25);border-radius:10px;padding:13px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start}
 .ai-title{font-weight:700;font-size:13px;margin-bottom:4px;color:var(--accent4)}
 .ai-text{font-size:13px;line-height:1.6}
@@ -198,7 +183,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 @keyframes spin{to{transform:rotate(360deg)}}
 .ai-loading{display:flex;align-items:center;gap:10px;padding:10px 0;color:var(--muted);font-size:13px}
 
-/* ── EXPORT ── */
 .export-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .export-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px;cursor:pointer;transition:all .15s;text-align:center}
 .export-card:hover{border-color:var(--accent);background:rgba(245,200,66,.06)}
@@ -206,13 +190,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .ec-title{font-size:12px;font-weight:700;margin-bottom:2px}
 .ec-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
 
-/* ── TOAST ── */
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;z-index:9999;transition:transform .3s ease;display:flex;align-items:center;gap:7px;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{border-color:var(--accent3)}
 .toast.error{border-color:var(--accent2)}
 
-/* ── LEAFLET OVERRIDES ── */
 .leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important;padding:0!important}
 .leaflet-popup-content{margin:0!important}
 .leaflet-popup-tip{background:var(--surface)!important}
@@ -237,16 +219,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 1
 .resolve-bar-fill{height:100%;background:var(--accent3);border-radius:2px;transition:width .4s}
 .resolve-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
 
-/* ── LIGHT MODE ── */
 body.light{--bg:#f2f4f8;--surface:#fff;--surface2:#eef0f6;--border:#dde1ee;--text:#1a1d2e;--muted:#666e90}
 body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92)}
 
-/* ── DB STATUS ── */
 .db-dot{width:7px;height:7px;border-radius:50%;background:var(--accent3);display:inline-block;animation:blink 2s infinite}
 .db-dot.offline{background:var(--accent2);animation:none}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* ── RESPONSIVE ── */
 @media(max-width:700px){
   :root{--panel-w:100%}
   .main{flex-direction:column-reverse}
@@ -261,7 +240,6 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
 </head>
 <body>
 
-<!-- ═══ HEADER ═══ -->
 <header>
   <div class="logo">
     <div class="logo-icon">🛣️</div>
@@ -270,7 +248,6 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
       <div class="logo-sub">Ottawa–Gatineau</div>
     </div>
   </div>
-
   <div class="header-stats">
     <div class="stat-pill">
       <div class="stat-num" id="h-total" style="color:var(--accent)">0</div>
@@ -289,22 +266,18 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
       <div class="stat-lbl" data-i18n="hVotes">Votes</div>
     </div>
   </div>
-
   <div class="header-actions">
     <span title="Database" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">
       <span class="db-dot" id="db-dot"></span><span id="db-label">DB</span>
     </span>
     <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
     <button class="icon-btn" onclick="toggleLang()" id="lang-btn">FR</button>
-    <button class="btn btn-ghost" onclick="openModal('export-modal')" data-i18n="btnExport">⬇️ Export</button>
+    <button class="btn btn-ghost" onclick="openExportModal()" data-i18n="btnExport">⬇️ Export</button>
     <button class="btn btn-primary" onclick="activateReportMode()" id="report-btn" data-i18n="btnReport">+ Report Issue</button>
   </div>
 </header>
 
-<!-- ═══ MAIN ═══ -->
 <div class="main">
-
-  <!-- MAP -->
   <div id="map">
     <div class="map-controls">
       <button class="map-btn" id="heatmap-btn" onclick="toggleHeatmap()" data-i18n="btnHeatmap">🌡️ Heatmap</button>
@@ -317,7 +290,6 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
     </div>
   </div>
 
-  <!-- SIDE PANEL -->
   <div class="panel">
     <div class="panel-tabs">
       <div class="tab active" data-tab="feed" onclick="switchTab('feed')" data-i18n="tabFeed">Feed</div>
@@ -325,7 +297,7 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
       <div class="tab" data-tab="stats" onclick="switchTab('stats')" data-i18n="tabStats">Insights</div>
     </div>
 
-    <!-- ── TAB: FEED ── -->
+    <!-- TAB: FEED -->
     <div class="tab-content active" id="tab-feed">
       <div class="search-wrap">
         <input class="search-input" id="search-input" placeholder="Search address, type…" oninput="renderFeed()">
@@ -356,11 +328,10 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
       <div id="issue-feed"></div>
     </div>
 
-    <!-- ── TAB: REPORT ── -->
+    <!-- TAB: REPORT -->
     <div class="tab-content" id="tab-report">
       <div class="report-inner">
         <div class="info-box">ℹ️ <span data-i18n="reportInfo">Reports are aggregated and exported weekly to Ottawa 311 & Gatineau 311.</span></div>
-
         <div>
           <label class="form-label" data-i18n="labelType">Issue Type</label>
           <div class="type-grid">
@@ -372,7 +343,6 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
             <button class="type-btn" data-type="other" onclick="selectType(this)"><span class="icon">⚠️</span><span data-i18n="typeOther">Other</span></button>
           </div>
         </div>
-
         <div>
           <label class="form-label" data-i18n="labelSeverity">Severity</label>
           <div class="severity-row">
@@ -382,7 +352,6 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
             <button class="sev-btn" data-sev="critical" onclick="selectSev(this)" data-i18n="sevCritical">Critical</button>
           </div>
         </div>
-
         <div>
           <label class="form-label" data-i18n="labelCity">Municipality</label>
           <select class="form-select" id="city-select">
@@ -390,24 +359,20 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
             <option value="Gatineau">Gatineau</option>
           </select>
         </div>
-
         <div>
           <label class="form-label" data-i18n="labelLocation">Location</label>
           <div class="location-pick" id="location-pick" onclick="activateReportMode()">
             <span>📍</span><span id="location-text" data-i18n="locationPick">Click to pick on map</span>
           </div>
         </div>
-
         <div>
           <label class="form-label" data-i18n="labelAddress">Street Address (optional)</label>
           <input type="text" class="form-input" id="addr-input" placeholder="e.g. 123 Rideau St, Ottawa">
         </div>
-
         <div>
           <label class="form-label" data-i18n="labelDesc">Description</label>
           <textarea class="form-textarea" id="desc-input" placeholder="Size, hazard level, when noticed…"></textarea>
         </div>
-
         <div>
           <label class="form-label" data-i18n="labelPhoto">Photo (optional)</label>
           <div class="photo-drop" id="photo-drop">
@@ -420,13 +385,12 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
           </div>
           <div class="photo-preview" id="photo-preview"></div>
         </div>
-
         <button class="analyze-btn" onclick="openAiModal()">🤖 <span data-i18n="btnAnalyze">AI Analyze This Report</span></button>
         <button class="submit-btn" id="submit-btn" onclick="submitReport()"><span data-i18n="btnSubmit">Submit Report →</span></button>
       </div>
     </div>
 
-    <!-- ── TAB: STATS ── -->
+    <!-- TAB: STATS -->
     <div class="tab-content" id="tab-stats">
       <div class="stats-inner">
         <div>
@@ -460,10 +424,8 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
         </div>
       </div>
     </div>
-  </div><!-- /panel -->
-</div><!-- /main -->
-
-<!-- ═══ MODALS ═══ -->
+  </div>
+</div>
 
 <!-- AI MODAL -->
 <div class="modal-overlay" id="ai-modal">
@@ -501,18 +463,12 @@ body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════
-// CONFIG — Choose a database provider (Firebase shown here as a free alternative)
-// If you still want to use Supabase, leave the SUPABASE_* values and follow
-// the instructions in DEPLOYMENT-GUIDE.md. To use Firebase, fill in
-// FIREBASE_CONFIG below and set CLAUDE_PROXY = '/.netlify/functions/analyze'
+// CONFIG
 // ══════════════════════════════════════════════════════════════════════════
-
-// Firebase config placeholder - replace with values from your Firebase console
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyB5YwJ_qgGFsiJiSGuThHIFnII_aPijUWE",
   authDomain: "route-watch.firebaseapp.com",
@@ -522,24 +478,18 @@ const FIREBASE_CONFIG = {
   appId: "1:806133473541:web:3e5d5a14369b08c98e976c",
   measurementId: "G-MKKQBHF4XR"
 };
-
-// If you prefer server-side admin via Netlify (recommended for production),
-// set this to '/.netlify/functions/firestore-admin' and add FIREBASE_ADMIN_JSON in Netlify env.
-// By default we leave it empty so the client writes directly to Firestore (pins persist immediately).
 const FIRESTORE_ADMIN_PROXY = '';
-
-// Netlify function proxy (set to '/.netlify/functions/analyze' after deploy)
-const CLAUDE_PROXY = '/.netlify/functions/analyze'; // e.g. /.netlify/functions/analyze
-const RESOLVE_THRESHOLD = 50; // votes needed to auto-resolve
+const CLAUDE_PROXY = '/.netlify/functions/analyze';
+const RESOLVE_THRESHOLD = 50;
 
 // ══════════════════════════════════════════════════════════════════════════
-// DATABASE (Firebase Firestore alternative)
-// - Fill FIREBASE_CONFIG above to enable Firestore
-// - This provides realtime listeners and transactional increments
+// DATABASE
 // ══════════════════════════════════════════════════════════════════════════
-let db = null;           // wrapper object used by the app (keeps naming consistent)
-let firestore = null;    // actual Firestore instance
+let db = null;
+let firestore = null;
 let dbOnline = false;
+// Flag: true once the realtime listener has fired its initial snapshot
+let realtimeReady = false;
 
 function setDbStatus(online) {
   dbOnline = online;
@@ -552,56 +502,75 @@ function setDbStatus(online) {
 async function initDatabase() {
   try {
     if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'YOUR_FIREBASE_API_KEY') {
-      // Initialize Firebase (compat for simpler migration)
       firebase.initializeApp(FIREBASE_CONFIG);
       firestore = firebase.firestore();
-      // Wrapper object with methods used by the app (keeps rest of code tidy)
       db = {
-        insertIssue: insertIssue,
-        incrementVotes: incrementVotes,
-        incrementResolveVotes: incrementResolveVotes,
-        fetchIssues: fetchIssues,
+        insertIssue,
+        incrementVotes,
+        incrementResolveVotes,
+        fetchIssues,
       };
       setDbStatus(true);
+      // Use realtime listener as the SOLE source of truth for the issues array.
+      // Do NOT call loadIssues() separately — the initial snapshot already
+      // delivers all existing docs as 'added' changes.
       subscribeRealtimeFirestore();
     } else {
-      // No Firebase configured — run in local mode
       console.warn('Firestore not configured — running in local mode');
       setDbStatus(false);
+      renderAll();
     }
   } catch (e) {
     console.error('Database init failed', e);
     setDbStatus(false);
+    renderAll();
   }
 }
 
 function subscribeRealtimeFirestore() {
   if (!firestore) return;
+
+  // ─── KEY FIX ───────────────────────────────────────────────────────────
+  // We process the ENTIRE snapshot each time instead of individual change
+  // events. This avoids the duplicate-ID race condition that caused pins to
+  // be silently overwritten in the markers{} map and then deleted on the
+  // next renderMarkers() call.
+  // ────────────────────────────────────────────────────────────────────────
   const col = firestore.collection('issues').orderBy('created_at', 'desc');
   col.onSnapshot(snapshot => {
-    snapshot.docChanges().forEach(change => {
-      const doc = change.doc.data();
-      // Ensure the object shape matches dbRowToIssue input
-      const row = Object.assign({}, doc);
-      if (change.type === 'added') {
-        issues.unshift(dbRowToIssue(row));
-        renderAll();
-        showToast('🆕 ' + (lang==='fr'?'Nouveau signalement':'New report') + ': ' + row.addr, '');
-      } else if (change.type === 'modified') {
-        const idx = issues.findIndex(i => i.id === row.id);
-        if (idx !== -1) { issues[idx] = dbRowToIssue(row); renderAll(); }
-      } else if (change.type === 'removed') {
-        const idx = issues.findIndex(i => i.id === row.id);
-        if (idx !== -1) { issues.splice(idx,1); renderAll(); }
+    // Rebuild the full issues array from the snapshot's current state
+    const incoming = snapshot.docs.map(d => dbRowToIssue(d.data()));
+
+    if (!realtimeReady) {
+      // First snapshot — cold load
+      realtimeReady = true;
+      issues = incoming;
+      renderAll();
+      return;
+    }
+
+    // Subsequent snapshots — figure out what changed so we can show toasts
+    // without rebuilding everything from scratch on every keystroke.
+    const existingIds = new Set(issues.map(i => i.id));
+    const incomingIds = new Set(incoming.map(i => i.id));
+
+    // Detect newly added docs for the toast notification
+    incoming.forEach(issue => {
+      if (!existingIds.has(issue.id)) {
+        showToast('🆕 ' + (lang === 'fr' ? 'Nouveau signalement' : 'New report') + ': ' + issue.addr, '');
       }
     });
+
+    issues = incoming;
+    renderAll();
+  }, err => {
+    console.error('Firestore snapshot error', err);
   });
 }
 
-// Firestore helpers
+// ── Firestore helpers ──────────────────────────────────────────────────
 async function insertIssue(issue) {
-  // If server-side admin proxy is configured, use it to create the issue
-  if (typeof FIRESTORE_ADMIN_PROXY !== 'undefined' && FIRESTORE_ADMIN_PROXY) {
+  if (FIRESTORE_ADMIN_PROXY) {
     const id = String(issue.id || Date.now());
     const payload = Object.assign({}, issue, { id: Number(id) });
     const res = await fetch(FIRESTORE_ADMIN_PROXY, {
@@ -628,11 +597,12 @@ async function insertIssue(issue) {
     created_at: new Date().toISOString(),
   };
   await docRef.set(payload);
+  // The realtime listener will pick this up and call renderAll() automatically.
   return payload;
 }
 
 async function incrementVotes(id) {
-  if (typeof FIRESTORE_ADMIN_PROXY !== 'undefined' && FIRESTORE_ADMIN_PROXY) {
+  if (FIRESTORE_ADMIN_PROXY) {
     await fetch(FIRESTORE_ADMIN_PROXY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ op: 'incVotes', id })
@@ -644,13 +614,12 @@ async function incrementVotes(id) {
   await firestore.runTransaction(async tx => {
     const doc = await tx.get(ref);
     if (!doc.exists) return;
-    const next = (doc.data().votes || 0) + 1;
-    tx.update(ref, { votes: next });
+    tx.update(ref, { votes: (doc.data().votes || 0) + 1 });
   });
 }
 
 async function incrementResolveVotes(id, threshold) {
-  if (typeof FIRESTORE_ADMIN_PROXY !== 'undefined' && FIRESTORE_ADMIN_PROXY) {
+  if (FIRESTORE_ADMIN_PROXY) {
     await fetch(FIRESTORE_ADMIN_PROXY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ op: 'incResolve', id, threshold })
@@ -677,35 +646,29 @@ async function fetchIssues(limit = 500) {
 }
 
 function dbRowToIssue(row) {
-  // created_at may be an ISO string, a number, or a Firestore Timestamp object.
-  let createdDate = null;
+  let createdDate = new Date();
   try {
-    if (!row || !row.created_at) createdDate = new Date();
-    else if (typeof row.created_at === 'string' || typeof row.created_at === 'number') {
-      createdDate = new Date(row.created_at);
-    } else if (typeof row.created_at.toDate === 'function') {
-      // Firestore Timestamp
-      createdDate = row.created_at.toDate();
-    } else if (row.created_at.seconds) {
-      // fallback for raw timestamp-like object
-      createdDate = new Date(row.created_at.seconds * 1000);
-    } else {
-      createdDate = new Date();
+    if (row.created_at) {
+      if (typeof row.created_at === 'string' || typeof row.created_at === 'number') {
+        createdDate = new Date(row.created_at);
+      } else if (typeof row.created_at.toDate === 'function') {
+        createdDate = row.created_at.toDate();
+      } else if (row.created_at.seconds) {
+        createdDate = new Date(row.created_at.seconds * 1000);
+      }
     }
-  } catch (e) {
-    createdDate = new Date();
-  }
-  const now = new Date();
-  const daysAgo = Math.max(0, Math.floor((now - createdDate) / 86400000));
+  } catch (e) { createdDate = new Date(); }
+
+  const daysAgo = Math.max(0, Math.floor((Date.now() - createdDate.getTime()) / 86400000));
   return {
-    id: typeof row.id === 'string' ? Number(row.id) : row.id,
-    type: row.type,
-    sev: row.severity,
-    city: row.city,
+    id: typeof row.id === 'string' ? Number(row.id) : (row.id || Date.now()),
+    type: row.type || 'other',
+    sev: row.severity || 'medium',
+    city: row.city || 'Ottawa',
     lat: row.lat,
     lng: row.lng,
-    addr: row.addr,
-    desc: row.description,
+    addr: row.addr || '',
+    desc: row.description || '',
     votes: row.votes || 0,
     resolved: row.resolved || false,
     resolveVotes: row.resolve_votes || 0,
@@ -729,10 +692,9 @@ let heatmapVisible = false;
 let satelliteMode = false;
 let cityFilter = { Ottawa: true, Gatineau: true };
 
-// Per-user vote tracking (localStorage — no login required)
-let votedIds      = new Set(JSON.parse(localStorage.getItem('rw_voted') || '[]'));
-let resolveVoted  = new Set(JSON.parse(localStorage.getItem('rw_resolve_voted') || '[]'));
-let pendingPhotos  = [];
+let votedIds     = new Set(JSON.parse(localStorage.getItem('rw_voted') || '[]'));
+let resolveVoted = new Set(JSON.parse(localStorage.getItem('rw_resolve_voted') || '[]'));
+let pendingPhotos = [];
 
 function saveLocalVotes() {
   localStorage.setItem('rw_voted',         JSON.stringify([...votedIds]));
@@ -740,60 +702,47 @@ function saveLocalVotes() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// I18N — FULL BILINGUAL SYSTEM
+// I18N
 // ══════════════════════════════════════════════════════════════════════════
 let lang = localStorage.getItem('rw_lang') || 'en';
 
 const STRINGS = {
   en: {
-    // header stats
     hIssues:'Issues', hCritical:'Critical', hResolved:'Resolved', hVotes:'Votes',
-    // buttons
     btnExport:'⬇️ Export', btnReport:'+ Report Issue', btnHeatmap:'🌡️ Heatmap',
     btnLocate:'📍 My Location', btnSatellite:'🛰️ Satellite', btnCancel:'Cancel',
     btnAnalyze:'AI Analyze This Report', btnSubmit:'Submit Report →',
-    // tabs
     tabFeed:'Feed', tabReport:'Report', tabStats:'Insights',
-    // feed
     feedTitle:'Recent Reports',
     filterAll:'All', filterPothole:'Potholes', filterCrack:'Cracks',
     filterFlooding:'Flooding', filterSignage:'Signage', filterSidewalk:'Sidewalk',
     sortLabel:'Sort:', sortNewest:'Newest', sortVotes:'Most Voted', sortSeverity:'Critical First',
-    // report form
     reportInfo:'Reports are aggregated and exported weekly to Ottawa 311 & Gatineau 311.',
     labelType:'Issue Type', labelSeverity:'Severity', labelCity:'Municipality',
     labelLocation:'Location', locationPick:'Click to pick on map',
     labelAddress:'Street Address (optional)', labelDesc:'Description',
     labelPhoto:'Photo (optional)', photoDrop:'Drop photos or click to browse',
-    // type buttons
     typePothole:'Pothole', typeCrack:'Crack', typeFlooding:'Flooding',
     typeSignage:'Signage', typeSidewalk:'Sidewalk', typeOther:'Other',
-    // severity
     sevLow:'Low', sevMedium:'Medium', sevHigh:'High', sevCritical:'Critical',
-    // pin mode
     pinMode:'📌 Click on map to place pin',
-    // stats
     statsByType:'By Issue Type', statsTopStreets:'Top Streets',
     stats30Day:'30-Day Activity', statsWard:'Ward Condition Score', stats311:'311 Contact',
     reportOttawa:'Report to Ottawa online', reportGatineau:'Report to Gatineau online',
-    // modals
     aiModalTitle:'AI Issue Analysis', aiLoading:'Analyzing…',
     exportTitle:'⬇️ Export & Share', exportSub:'Download data or share with city services.',
     exportCsvSub:'Spreadsheet', exportJsonSub:'Raw data',
     exportLink:'Share Link', exportLinkSub:'Copy URL',
     export311:'Send to 311', export311Sub:'Email digest',
     exportSummaryTitle:'Summary',
-    // cards
     today:'Today', yesterday:'Yesterday', resolvedLabel:'✓ Resolved',
     confirmVote:'👍 Confirm', voted:'✓ Voted',
     resolveBtn:'✓ Mark Resolved', resolveVoted:'✓ Voted Resolved',
     resolvePollLabel:'Community resolved votes:',
     resolveNeeded:'needed to resolve',
-    // empty state
     emptyTitle:'No issues reported yet',
     emptySub:'Be the first to report a road issue in Ottawa-Gatineau.',
     emptyBtn:'+ Report the first issue',
-    // toast
     toastSubmitted:'✅ Issue reported! Thank you.',
     toastVoted:'👍 Vote recorded!',
     toastAlreadyVoted:'You already voted for this issue',
@@ -871,30 +820,21 @@ const STRINGS = {
 function t(key) { return STRINGS[lang][key] || STRINGS['en'][key] || key; }
 
 function applyI18n() {
-  // data-i18n elements
   document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    el.textContent = t(key);
+    el.textContent = t(el.dataset.i18n);
   });
-  // Placeholders
   const si = document.getElementById('search-input');
   if (si) si.placeholder = t('searchPh');
-  // Sort options
   document.querySelectorAll('#sort-select option').forEach(o => {
     if (o.dataset.i18n) o.textContent = t(o.dataset.i18n);
   });
-  // Location text
   const lt = document.getElementById('location-text');
   if (lt && !pendingLat) lt.textContent = t('locationPick');
-  // Mode banner
   const mb = document.querySelector('#mode-banner [data-i18n="pinMode"]');
   if (mb) mb.textContent = t('pinMode');
-  // Cancel button in banner
   const cb = document.querySelector('#mode-banner button');
   if (cb) cb.textContent = t('btnCancel');
-  // Lang toggle button
   document.getElementById('lang-btn').textContent = lang === 'en' ? 'FR' : 'EN';
-  // html lang attr
   document.documentElement.lang = lang;
 }
 
@@ -945,35 +885,19 @@ function makeIcon(type, sev) {
 let userLocationMarker = null;
 
 function locateMe() {
-  if (!navigator.geolocation) {
-    showToast(t('toastLocationError'), 'error');
-    return;
-  }
+  if (!navigator.geolocation) { showToast(t('toastLocationError'), 'error'); return; }
   showToast(t('toastLocating'), '');
   navigator.geolocation.getCurrentPosition(
     pos => {
       const { latitude: lat, longitude: lng, accuracy } = pos.coords;
       map.flyTo([lat, lng], 16, { duration: 1 });
       if (userLocationMarker) userLocationMarker.remove();
-      // Accuracy circle
-      L.circle([lat, lng], {
-        radius: accuracy,
-        color: '#5b8dee', fillColor: '#5b8dee',
-        fillOpacity: 0.08, weight: 1,
-      }).addTo(map);
-      userLocationMarker = L.circleMarker([lat, lng], {
-        radius: 8, color: '#fff', fillColor: '#5b8dee',
-        fillOpacity: 1, weight: 2,
-      }).addTo(map)
-        .bindPopup('<b>📍 ' + (lang==='fr'?'Vous êtes ici':'You are here') + '</b>')
-        .openPopup();
-
-      // If in report mode, auto-set pin location
+      L.circle([lat, lng], { radius: accuracy, color:'#5b8dee', fillColor:'#5b8dee', fillOpacity:.08, weight:1 }).addTo(map);
+      userLocationMarker = L.circleMarker([lat, lng], { radius:8, color:'#fff', fillColor:'#5b8dee', fillOpacity:1, weight:2 })
+        .addTo(map).bindPopup('<b>📍 ' + (lang==='fr'?'Vous êtes ici':'You are here') + '</b>').openPopup();
       if (reportMode) {
-        pendingLat = lat;
-        pendingLng = lng;
-        document.getElementById('location-text').textContent =
-          lat.toFixed(5) + ', ' + lng.toFixed(5);
+        pendingLat = lat; pendingLng = lng;
+        document.getElementById('location-text').textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
         document.getElementById('mode-banner').classList.remove('visible');
         map.getContainer().style.cursor = '';
         reportMode = false;
@@ -986,7 +910,7 @@ function locateMe() {
         : '⚠️ Permission denied. Enable location in your browser settings.';
       showToast(msg, 'error');
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    { enableHighAccuracy:true, timeout:10000, maximumAge:60000 }
   );
 }
 
@@ -1016,8 +940,7 @@ map.on('click', e => {
   if (!reportMode) return;
   pendingLat = e.latlng.lat;
   pendingLng = e.latlng.lng;
-  document.getElementById('location-text').textContent =
-    pendingLat.toFixed(5) + ', ' + pendingLng.toFixed(5);
+  document.getElementById('location-text').textContent = pendingLat.toFixed(5) + ', ' + pendingLng.toFixed(5);
   document.getElementById('mode-banner').classList.remove('visible');
   document.getElementById('location-pick').classList.remove('active');
   map.getContainer().style.cursor = '';
@@ -1054,20 +977,18 @@ async function submitReport() {
     createdAt: new Date().toISOString(),
   };
 
-  // Force Firestore-only persistence. If DB is not configured or write fails,
-  // show an error and do NOT save locally.
   if (db && db.insertIssue) {
     try {
       await db.insertIssue(issue);
       showToast(t('toastSaved'), 'success');
+      // The realtime listener will fire and call renderAll() — no need to do it here.
     } catch (e) {
       console.error('Failed to save to Firestore', e);
       showToast(t('toastSaveFailed'), 'error');
       btn.disabled = false;
-      return; // do not save locally
+      return;
     }
   } else {
-    // DB not configured — refuse to save locally
     showToast(t('toastNoDbConfigured'), 'error');
     btn.disabled = false;
     return;
@@ -1086,7 +1007,6 @@ async function submitReport() {
   if (window._tmpMarker) { window._tmpMarker.remove(); window._tmpMarker = null; }
 
   btn.disabled = false;
-  if (!db) renderAll();
   switchTab('feed');
 }
 
@@ -1095,57 +1015,63 @@ async function submitReport() {
 // ══════════════════════════════════════════════════════════════════════════
 async function voteIssue(id) {
   if (votedIds.has(id)) { showToast(t('toastAlreadyVoted'), ''); return; }
-  votedIds.add(id);
-  saveLocalVotes();
-
+  votedIds.add(id); saveLocalVotes();
   const issue = issues.find(i => i.id === id);
-  if (issue) { issue.votes++; }
-
+  if (issue) issue.votes++;
   if (db && db.incrementVotes) {
     try { await db.incrementVotes(id); } catch(e){ console.error(e); }
   }
-  renderFeed();
-  updateStats();
+  renderFeed(); updateStats();
   if (markers[id]) markers[id].setPopupContent(buildPopup(issues.find(i=>i.id===id)));
   showToast(t('toastVoted'), 'success');
 }
 
 async function voteResolve(id) {
   if (resolveVoted.has(id)) { showToast(t('toastAlreadyResolved'), ''); return; }
-  resolveVoted.add(id);
-  saveLocalVotes();
-
+  resolveVoted.add(id); saveLocalVotes();
   const issue = issues.find(i => i.id === id);
   if (!issue) return;
   issue.resolveVotes = (issue.resolveVotes || 0) + 1;
-
   const autoResolve = issue.resolveVotes >= RESOLVE_THRESHOLD;
   if (autoResolve) issue.resolved = true;
-
   if (db && db.incrementResolveVotes) {
     try { await db.incrementResolveVotes(id, RESOLVE_THRESHOLD); } catch(e){ console.error(e); }
   }
-
   renderAll();
-  if (autoResolve) showToast(t('toastResolvedAuto'), 'success');
-  else showToast(t('toastResolveCast'), 'success');
+  showToast(autoResolve ? t('toastResolvedAuto') : t('toastResolveCast'), 'success');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// MARKERS
+// MARKERS  ←── KEY FIX: only show non-resolved issues; rebuild cleanly each call
 // ══════════════════════════════════════════════════════════════════════════
 function renderMarkers() {
-  Object.values(markers).forEach(m => m.remove());
+  // Remove all existing markers from the map first
+  Object.values(markers).forEach(m => {
+    m.closePopup();
+    m.remove();
+  });
   markers = {};
+
   issues
-    .filter(i => cityFilter[i.city] && (activeFilter==='all' || i.type===activeFilter))
+    .filter(issue => {
+      // Never show resolved issues on the map
+      if (issue.resolved) return false;
+      // Respect city filter
+      if (!cityFilter[issue.city]) return false;
+      // Respect type filter
+      if (activeFilter !== 'all' && issue.type !== activeFilter) return false;
+      // Must have valid coordinates
+      if (issue.lat == null || issue.lng == null) return false;
+      return true;
+    })
     .forEach(issue => {
       const m = L.marker([issue.lat, issue.lng], { icon: makeIcon(issue.type, issue.sev) })
         .addTo(map)
-        .bindPopup(buildPopup(issue), { maxWidth:290 });
+        .bindPopup(buildPopup(issue), { maxWidth: 290 });
       m.on('click', () => highlightCard(issue.id));
       markers[issue.id] = m;
     });
+
   updateHeatmap();
 }
 
@@ -1155,7 +1081,7 @@ function buildPopup(issue) {
   const voted = votedIds.has(issue.id);
   const resolveVotedAlready = resolveVoted.has(issue.id);
   const pct = Math.min(100, Math.round(((issue.resolveVotes||0) / RESOLVE_THRESHOLD) * 100));
-  const sevLabel = { critical: lang==='fr'?'CRITIQUE':'CRITICAL', high: lang==='fr'?'ÉLEVÉ':'HIGH', medium: lang==='fr'?'MOYEN':'MEDIUM', low: lang==='fr'?'FAIBLE':'LOW' }[issue.sev] || issue.sev;
+  const sevLabel = { critical:lang==='fr'?'CRITIQUE':'CRITICAL', high:lang==='fr'?'ÉLEVÉ':'HIGH', medium:lang==='fr'?'MOYEN':'MEDIUM', low:lang==='fr'?'FAIBLE':'LOW' }[issue.sev] || issue.sev;
   return `<div class="popup-inner">
     <div class="popup-type">
       <span style="width:7px;height:7px;border-radius:50%;background:${meta.color};display:inline-block"></span>
@@ -1164,22 +1090,21 @@ function buildPopup(issue) {
     <div class="popup-address">${issue.addr}</div>
     <div class="popup-meta">
       <span class="card-severity sev-${issue.sev}">${sevLabel}</span>
-      ${issue.resolved ? '<span class="card-severity" style="background:rgba(76,175,140,.2);color:#4caf8c">✓ '+(lang==='fr'?'RÉSOLU':'RESOLVED')+'</span>' : ''}
     </div>
     <div class="popup-desc">${issue.desc}</div>
     <div class="popup-actions">
       <button class="popup-vote ${voted?'voted':''}" onclick="voteIssue(${issue.id})">
         ${voted ? t('voted') : t('confirmVote')} &middot; ${issue.votes}
       </button>
-      ${!issue.resolved ? `<button class="popup-resolve ${resolveVotedAlready?'already-voted':''}" onclick="voteResolve(${issue.id})">
+      <button class="popup-resolve ${resolveVotedAlready?'already-voted':''}" onclick="voteResolve(${issue.id})">
         ${resolveVotedAlready ? t('resolveVoted') : t('resolveBtn')}
-      </button>` : ''}
+      </button>
     </div>
-    ${!issue.resolved ? `<div class="resolve-bar-wrap">
+    <div class="resolve-bar-wrap">
       <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${t('resolvePollLabel')} ${issue.resolveVotes||0}/${RESOLVE_THRESHOLD}</div>
       <div class="resolve-bar-track"><div class="resolve-bar-fill" style="width:${pct}%"></div></div>
       <div class="resolve-bar-labels"><span>${pct}%</span><span>${RESOLVE_THRESHOLD - (issue.resolveVotes||0)} ${t('resolveNeeded')}</span></div>
-    </div>` : ''}
+    </div>
   </div>`;
 }
 
@@ -1207,7 +1132,7 @@ function getSortedFiltered() {
     if (q && !i.addr.toLowerCase().includes(q) && !getTypeLabelFull(i.type).toLowerCase().includes(q) && !i.desc.toLowerCase().includes(q)) return false;
     return true;
   });
-  if (sort === 'votes')    list.sort((a,b) => b.votes - a.votes);
+  if (sort === 'votes') list.sort((a,b) => b.votes - a.votes);
   else if (sort === 'severity') list.sort((a,b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev]);
   else list.sort((a,b) => a.daysAgo - b.daysAgo);
   return list;
@@ -1222,7 +1147,6 @@ function dayLabel(n) {
 function renderFeed() {
   const feed = document.getElementById('issue-feed');
   const filtered = getSortedFiltered();
-
   if (!filtered.length) {
     const isSearch = (document.getElementById('search-input')?.value||'').length > 0;
     feed.innerHTML = `<div class="empty-state">
@@ -1233,7 +1157,6 @@ function renderFeed() {
     </div>`;
     return;
   }
-
   feed.innerHTML = filtered.map(issue => {
     const meta = TYPE_META[issue.type] || TYPE_META.other;
     const voted = votedIds.has(issue.id);
@@ -1241,8 +1164,7 @@ function renderFeed() {
     const pct = Math.min(100, Math.round(((issue.resolveVotes||0)/RESOLVE_THRESHOLD)*100));
     const typeLabel = getTypeLabelFull(issue.type);
     const sevKey = { critical:'sevCritical', high:'sevHigh', medium:'sevMedium', low:'sevLow' }[issue.sev];
-
-    return `<div class="issue-card ${issue.resolved?'resolved-card':''}" id="card-${issue.id}" onclick="flyTo(${issue.id})">
+    return `<div class="issue-card" id="card-${issue.id}" onclick="flyTo(${issue.id})">
       <div class="card-top">
         <div class="card-type">
           <span class="type-dot" style="background:${meta.color}"></span>
@@ -1313,10 +1235,7 @@ function updateStats() {
   document.getElementById('h-critical').textContent = issues.filter(i=>i.sev==='critical'&&!i.resolved).length;
   document.getElementById('h-resolved').textContent = issues.filter(i=>i.resolved).length;
   document.getElementById('h-votes').textContent    = issues.reduce((s,i)=>s+i.votes,0);
-  renderDonut();
-  renderTopStreets();
-  renderHeatmapGrid();
-  renderWardScores();
+  renderDonut(); renderTopStreets(); renderHeatmapGrid(); renderWardScores();
 }
 
 function renderDonut() {
@@ -1324,22 +1243,18 @@ function renderDonut() {
   Object.keys(TYPE_META).forEach(t => counts[t]=0);
   issues.forEach(i => counts[i.type]=(counts[i.type]||0)+1);
   const total = issues.length || 1;
-  const cx=45,cy=45,r=32,sw=13, circ=2*Math.PI*r;
+  const cx=45,cy=45,r=32,sw=13,circ=2*Math.PI*r;
   let offset=0, paths='', legend='';
   Object.entries(counts).forEach(([type,count]) => {
     if (!count) return;
-    const dash = (count/total)*circ;
-    const col = TYPE_META[type].color;
-    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}"
-      stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}"
-      transform="rotate(-90 ${cx} ${cy})" opacity=".85"/>`;
-    offset += dash;
-    legend += `<div class="legend-item"><div class="legend-dot" style="background:${col}"></div><span>${TYPE_META[type].icon} ${getTypeLabelFull(type)} (${count})</span></div>`;
+    const dash=(count/total)*circ;
+    const col=TYPE_META[type].color;
+    paths+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" opacity=".85"/>`;
+    offset+=dash;
+    legend+=`<div class="legend-item"><div class="legend-dot" style="background:${col}"></div><span>${TYPE_META[type].icon} ${getTypeLabelFull(type)} (${count})</span></div>`;
   });
-  document.getElementById('donut-svg').innerHTML = paths ||
-    `<circle cx="45" cy="45" r="32" fill="none" stroke="var(--surface2)" stroke-width="13"/>`;
-  document.getElementById('donut-legend').innerHTML = legend ||
-    `<div style="color:var(--muted);font-size:12px">${lang==='fr'?'Aucune donnée':'No data yet'}</div>`;
+  document.getElementById('donut-svg').innerHTML = paths || `<circle cx="45" cy="45" r="32" fill="none" stroke="var(--surface2)" stroke-width="13"/>`;
+  document.getElementById('donut-legend').innerHTML = legend || `<div style="color:var(--muted);font-size:12px">${lang==='fr'?'Aucune donnée':'No data yet'}</div>`;
 }
 
 function renderTopStreets() {
@@ -1348,18 +1263,12 @@ function renderTopStreets() {
   const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const max = sorted[0]?.[1] || 1;
   document.getElementById('top-streets').innerHTML = sorted.length
-    ? sorted.map(([s,c]) => `<div class="bar-row">
-        <div class="bar-label" title="${s}">${s.substring(0,16)}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${c/max*100}%;background:var(--accent)"></div></div>
-        <div class="bar-count">${c}</div>
-      </div>`).join('')
+    ? sorted.map(([s,c]) => `<div class="bar-row"><div class="bar-label" title="${s}">${s.substring(0,16)}</div><div class="bar-track"><div class="bar-fill" style="width:${c/max*100}%;background:var(--accent)"></div></div><div class="bar-count">${c}</div></div>`).join('')
     : `<div style="color:var(--muted);font-size:12px;padding:4px 0">${lang==='fr'?'Aucune donnée':'No data yet'}</div>`;
 }
 
 function renderHeatmapGrid() {
-  const days = lang==='fr'
-    ? ['D','L','M','M','J','V','S']
-    : ['S','M','T','W','T','F','S'];
+  const days = lang==='fr' ? ['D','L','M','M','J','V','S'] : ['S','M','T','W','T','F','S'];
   document.getElementById('hm-days').innerHTML = days.map(d=>`<div class="hm-day">${d}</div>`).join('');
   const cells = Array(28).fill(0);
   issues.forEach(i => { const d=Math.min(i.daysAgo,27); cells[27-d]++; });
@@ -1395,12 +1304,13 @@ function updateHeatmap() {
   heatCircles.forEach(c => c.remove());
   heatCircles = [];
   if (!heatmapVisible) return;
-  issues.forEach(issue => {
+  issues.filter(i => !i.resolved).forEach(issue => {
+    if (issue.lat == null || issue.lng == null) return;
     const c = L.circle([issue.lat, issue.lng], {
       radius: 200 + issue.votes * 10,
       color: TYPE_META[issue.type]?.color || '#888',
       fillColor: TYPE_META[issue.type]?.color || '#888',
-      fillOpacity: .1, weight: 0,
+      fillOpacity:.1, weight:0,
     }).addTo(map);
     heatCircles.push(c);
   });
@@ -1414,17 +1324,13 @@ function toggleSatellite() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// THEME
+// THEME / TABS / FORM
 // ══════════════════════════════════════════════════════════════════════════
 function toggleTheme() {
   document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent =
-    document.body.classList.contains('light') ? '🌞' : '🌙';
+  document.getElementById('theme-btn').textContent = document.body.classList.contains('light') ? '🌞' : '🌙';
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// TABS
-// ══════════════════════════════════════════════════════════════════════════
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1432,9 +1338,6 @@ function switchTab(name) {
   if (name==='stats') updateStats();
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// FORM HELPERS
-// ══════════════════════════════════════════════════════════════════════════
 function selectType(el) {
   document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
@@ -1449,16 +1352,14 @@ function selectSev(el) {
 
 function handlePhotos(input) {
   const preview = document.getElementById('photo-preview');
-  preview.innerHTML = '';
-  pendingPhotos = [];
+  preview.innerHTML = ''; pendingPhotos = [];
   Array.from(input.files).slice(0,4).forEach(file => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = e => {
       pendingPhotos.push(e.target.result);
       const img = document.createElement('img');
-      img.src = e.target.result;
-      img.className = 'photo-thumb';
+      img.src = e.target.result; img.className = 'photo-thumb';
       preview.appendChild(img);
     };
     reader.readAsDataURL(file);
@@ -1472,31 +1373,18 @@ function openAiModal() {
   document.getElementById('ai-modal-body').innerHTML =
     `<div class="ai-loading"><div class="spinner"></div> ${t('aiLoading')}</div>`;
   openModal('ai-modal');
-
   const type = selectedType || 'other';
   const sev  = selectedSev  || 'medium';
   const addr = document.getElementById('addr-input')?.value || '';
   const desc = document.getElementById('desc-input')?.value || '';
   const city = document.getElementById('city-select')?.value || 'Ottawa';
-
-  const prompt = `You are a municipal road infrastructure analyst for the Ottawa-Gatineau region in Canada.
-A citizen reported: Type=${type}, Severity=${sev}, Location="${addr}", City=${city}, Description="${desc}".
-Respond ONLY with this JSON (no markdown, no preamble):
-{"analysis":"3-sentence analysis covering cause, urgency, safety impact","urgency":"e.g. 1-3 days","department":"responsible city dept","tags":["tag1","tag2","tag3"],"riskScore":0-100}`;
-
-  // Try proxy first, fall back to demo mode
-  const proxyUrl = CLAUDE_PROXY !== 'YOUR_NETLIFY_FUNCTION_URL' ? CLAUDE_PROXY : null;
-
+  const proxyUrl = CLAUDE_PROXY && CLAUDE_PROXY !== 'YOUR_NETLIFY_FUNCTION_URL' ? CLAUDE_PROXY : null;
   if (proxyUrl) {
     fetch(proxyUrl, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ type, sev, addr, city, desc, lang }),
-    })
-    .then(r=>r.json())
-    .then(data => renderAiResult(data))
-    .catch(() => renderAiResult(fallbackAnalysis(type,sev,city)));
+    }).then(r=>r.json()).then(data=>renderAiResult(data)).catch(()=>renderAiResult(fallbackAnalysis(type,sev,city)));
   } else {
-    // Demo fallback (no API key needed)
     setTimeout(() => renderAiResult(fallbackAnalysis(type, sev, city)), 800);
   }
 }
@@ -1505,50 +1393,38 @@ function fallbackAnalysis(type, sev, city) {
   const isFr = lang === 'fr';
   const map = {
     pothole: {
-      analysis: isFr
-        ? `Ce nid-de-poule est typiquement causé par les cycles gel-dégel d'Ottawa-Gatineau. ${sev==='critical'?'Une réparation immédiate est requise.':'Une réparation est à planifier.'} Signalez-le au 311 pour une intervention.`
-        : `This pothole is typical of Ottawa-Gatineau's freeze-thaw cycles. ${sev==='critical'?'Immediate repair required.':'Schedule for next maintenance cycle.'} Report to 311 for fastest response.`,
+      analysis: isFr ? `Ce nid-de-poule est typiquement causé par les cycles gel-dégel d'Ottawa-Gatineau. ${sev==='critical'?'Une réparation immédiate est requise.':'Une réparation est à planifier.'} Signalez-le au 311 pour une intervention.` : `This pothole is typical of Ottawa-Gatineau's freeze-thaw cycles. ${sev==='critical'?'Immediate repair required.':'Schedule for next maintenance cycle.'} Report to 311 for fastest response.`,
       urgency: sev==='critical'?'1–3 days':sev==='high'?'1–2 weeks':'2–4 weeks',
       department: `${city} Public Works — Roads`,
       tags: isFr?['Gel-Dégel','Réparation Urgente','Revêtement']:['Freeze-Thaw','Urgent Repair','Asphalt'],
       riskScore: sev==='critical'?88:sev==='high'?68:50,
     },
     flooding: {
-      analysis: isFr
-        ? `Les inondations routières à ${city} sont souvent liées à des puisards bouchés. Évitez la zone et signalez immédiatement au 311.`
-        : `Road flooding in ${city} is typically caused by blocked catch basins. Avoid the area and report to 311 immediately.`,
+      analysis: isFr ? `Les inondations routières à ${city} sont souvent liées à des puisards bouchés. Évitez la zone et signalez immédiatement au 311.` : `Road flooding in ${city} is typically caused by blocked catch basins. Avoid the area and report to 311 immediately.`,
       urgency:'1–3 days', department:`${city} Drainage & Storm Water`,
       tags: isFr?['Égout Bouché','Urgence','Eau de Surface']:['Blocked Drain','Urgent','Storm Water'],
       riskScore:76,
     },
     crack: {
-      analysis: isFr
-        ? `Les fissures de chaussée à ${city} résultent du stress thermique et du vieillissement. Sans traitement, elles évoluent en nids-de-poule. Un colmatage préventif est recommandé.`
-        : `Pavement cracking in ${city} results from thermal stress and aging. Untreated cracks become potholes. Preventive crack sealing is recommended.`,
+      analysis: isFr ? `Les fissures de chaussée à ${city} résultent du stress thermique et du vieillissement. Sans traitement, elles évoluent en nids-de-poule. Un colmatage préventif est recommandé.` : `Pavement cracking in ${city} results from thermal stress and aging. Untreated cracks become potholes. Preventive crack sealing is recommended.`,
       urgency:'2–6 weeks', department:`${city} Road Maintenance`,
       tags: isFr?['Vieillissement','Maintenance Préventive','Fissure']:['Aging','Preventive','Crack Sealing'],
       riskScore:42,
     },
     signage: {
-      analysis: isFr
-        ? `La signalisation manquante ou endommagée constitue un risque grave, surtout aux intersections. Le service de circulation de ${city} doit être contacté rapidement.`
-        : `Missing or damaged signage is a serious safety risk, especially at intersections. ${city} Traffic Operations must be contacted promptly.`,
-      urgency:sev==='critical'?'Same day':'3–7 days', department:`${city} Traffic Operations`,
+      analysis: isFr ? `La signalisation manquante ou endommagée constitue un risque grave, surtout aux intersections. Le service de circulation de ${city} doit être contacté rapidement.` : `Missing or damaged signage is a serious safety risk, especially at intersections. ${city} Traffic Operations must be contacted promptly.`,
+      urgency: sev==='critical'?'Same day':'3–7 days', department:`${city} Traffic Operations`,
       tags: isFr?['Sécurité Routière','Signalisation','Intersection']:['Traffic Safety','Signage','Intersection'],
-      riskScore:sev==='critical'?84:46,
+      riskScore: sev==='critical'?84:46,
     },
     sidewalk: {
-      analysis: isFr
-        ? `Les trottoirs endommagés à ${city} présentent des risques pour les piétons, notamment les personnes à mobilité réduite. La ville priorise les réparations près des arrêts de transport en commun.`
-        : `Damaged sidewalks in ${city} pose trip hazards, especially for seniors and wheelchair users. The city prioritizes repairs near transit stops and schools.`,
+      analysis: isFr ? `Les trottoirs endommagés à ${city} présentent des risques pour les piétons, notamment les personnes à mobilité réduite. La ville priorise les réparations près des arrêts de transport en commun.` : `Damaged sidewalks in ${city} pose trip hazards, especially for seniors and wheelchair users. The city prioritizes repairs near transit stops and schools.`,
       urgency:'1–3 weeks', department:`${city} Pedestrian Infrastructure`,
       tags: isFr?['Accessibilité','Risque Chute','LAPHO']:['Accessibility','Trip Hazard','AODA'],
       riskScore:54,
     },
     other: {
-      analysis: isFr
-        ? `Signalez ce problème au 311 de ${city} avec le maximum de détails et de photos. Conservez votre numéro de référence pour le suivi.`
-        : `Report this issue to ${city} 311 with as many details and photos as possible. Keep your reference number for follow-up.`,
+      analysis: isFr ? `Signalez ce problème au 311 de ${city} avec le maximum de détails et de photos. Conservez votre numéro de référence pour le suivi.` : `Report this issue to ${city} 311 with as many details and photos as possible. Keep your reference number for follow-up.`,
       urgency:'2–4 weeks', department:`${city} 311`,
       tags: isFr?['Infrastructure','311','Suivi']:['Infrastructure','311 Report','Follow-Up'],
       riskScore:40,
@@ -1562,9 +1438,7 @@ function renderAiResult(data) {
   const tagCols = [['rgba(91,141,238,.2)','var(--accent4)'],['rgba(76,175,140,.2)','var(--accent3)'],['rgba(245,200,66,.2)','var(--accent)']];
   const circ = 2*Math.PI*24;
   const dash = (data.riskScore/100)*circ;
-  const tags = (data.tags||[]).map((tag,i)=>
-    `<span class="ai-chip" style="background:${tagCols[i%3][0]};color:${tagCols[i%3][1]}">${tag}</span>`
-  ).join('');
+  const tags = (data.tags||[]).map((tag,i) => `<span class="ai-chip" style="background:${tagCols[i%3][0]};color:${tagCols[i%3][1]}">${tag}</span>`).join('');
   document.getElementById('ai-modal-body').innerHTML = `
     <div class="ai-banner">
       <div style="font-size:22px;flex-shrink:0">🤖</div>
@@ -1580,8 +1454,7 @@ function renderAiResult(data) {
         <div style="display:flex;align-items:center;gap:10px">
           <svg width="52" height="52" viewBox="0 0 52 52">
             <circle cx="26" cy="26" r="24" fill="none" stroke="var(--surface)" stroke-width="5"/>
-            <circle cx="26" cy="26" r="24" fill="none" stroke="${riskColor}" stroke-width="5"
-              stroke-dasharray="${dash} ${circ-dash}" stroke-linecap="round" transform="rotate(-90 26 26)"/>
+            <circle cx="26" cy="26" r="24" fill="none" stroke="${riskColor}" stroke-width="5" stroke-dasharray="${dash} ${circ-dash}" stroke-linecap="round" transform="rotate(-90 26 26)"/>
           </svg>
           <div>
             <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:${riskColor}">${data.riskScore}</div>
@@ -1641,8 +1514,7 @@ function copyShareLink() {
 function send311Email() {
   const critical = issues.filter(i=>i.sev==='critical'&&!i.resolved);
   const body = encodeURIComponent(
-    `RouteWatch Ottawa-Gatineau — Weekly Report\n\n` +
-    `Total issues: ${issues.length}\nCritical: ${critical.length}\n\n` +
+    `RouteWatch Ottawa-Gatineau — Weekly Report\n\nTotal issues: ${issues.length}\nCritical: ${critical.length}\n\n` +
     critical.slice(0,5).map(i=>`- ${i.type.toUpperCase()} at ${i.addr} (${i.city}): ${i.desc}`).join('\n') +
     `\n\nFull data: ${window.location.href}`
   );
@@ -1651,7 +1523,7 @@ function send311Email() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// MODALS
+// MODALS / TOAST
 // ══════════════════════════════════════════════════════════════════════════
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -1659,9 +1531,6 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
   o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); })
 );
 
-// ══════════════════════════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════════════════════════
 let toastTimer;
 function showToast(msg, type) {
   const el = document.getElementById('toast');
@@ -1670,20 +1539,6 @@ function showToast(msg, type) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>el.classList.remove('show'), 3200);
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// LOAD FROM SUPABASE
-// ══════════════════════════════════════════════════════════════════════════
-async function loadIssues() {
-  if (!db || !db.fetchIssues) { renderAll(); return; }
-  try {
-    issues = await db.fetchIssues(500);
-    renderAll();
-  } catch (e) {
-    console.error('Failed to load issues from DB', e);
-    renderAll();
-  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -1698,9 +1553,8 @@ function renderAll() {
 // ══════════════════════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════════════════════
-initDatabase();
 applyI18n();
-loadIssues();
+initDatabase(); // kicks off realtime subscription → first snapshot → renderAll()
 </script>
 </body>
 </html>
