@@ -591,6 +591,7 @@ async function insertIssue(issue) {
     lng: issue.lng,
     addr: issue.addr,
     description: issue.desc || '',
+    ward: issue.ward || null,  
     votes: 0,
     resolved: false,
     resolve_votes: 0,
@@ -641,7 +642,10 @@ async function incrementResolveVotes(id, threshold) {
 async function fetchIssues(limit = 500) {
   if (!firestore) return [];
   const snap = await firestore.collection('issues').orderBy('created_at', 'desc').limit(limit).get();
-  return snap.docs.map(d => d.data()).map(dbRowToIssue);
+  return snap.docs.map(d => {
+  const row = d.data();
+  return dbRowToIssue({ ...row, ward: row.ward ?? null });
+});
 }
 
 function dbRowToIssue(row) {
@@ -970,14 +974,20 @@ async function submitReport() {
              || (lang==='fr'?'Aucune description.':'No description.');
   const city = document.getElementById('city-select').value;
 
-  const issue = {
-    id: Date.now(),
-    type: selectedType, sev: selectedSev, city,
-    lat: pendingLat, lng: pendingLng,
-    addr, desc, votes: 0, resolved: false,
-    resolveVotes: 0, daysAgo: 0,
-    createdAt: new Date().toISOString(),
-  };
+let ward = null;
+try {
+  ward = await getWardFromCoords(pendingLat, pendingLng);
+} catch(e) { ward = null; }
+
+const issue = {
+  id: Date.now(),
+  type: selectedType, sev: selectedSev, city,
+  lat: pendingLat, lng: pendingLng,
+  addr, desc, ward,          // ← add ward here
+  votes: 0, resolved: false,
+  resolveVotes: 0, daysAgo: 0,
+  createdAt: new Date().toISOString(),
+};
 
   if (db && db.insertIssue) {
     try {
@@ -1282,14 +1292,53 @@ function renderHeatmapGrid() {
 }
 
 function renderWardScores() {
-  const wards = [
-    { name:'Rideau-Vanier', score:62 }, { name:'Kitchissippi', score:74 },
-    { name:'Alta Vista', score:78 },    { name:'College', score:71 },
-    { name:'Gatineau — Aylmer', score:69 }, { name:'Hull', score:65 },
-  ];
-  document.getElementById('ward-scores').innerHTML = wards.map(w => {
-    const col = w.score>=75?'var(--accent3)':w.score>=65?'var(--accent)':'var(--accent2)';
-    return `<div class="ward-row"><span>${w.name}</span><span class="ward-score" style="color:${col}">${w.score}/100</span></div>`;
+  // Collect all issues that have a ward assigned
+  const wardData = {};
+
+  issues.forEach(issue => {
+    const ward = issue.ward;
+    if (!ward) return;
+    if (!wardData[ward]) wardData[ward] = { total: 0, penalty: 0, resolved: 0 };
+    wardData[ward].total++;
+    if (issue.resolved) {
+      wardData[ward].resolved++;
+    } else {
+      // Deduct points based on severity
+      const penalty = { critical: 18, high: 10, medium: 5, low: 2 };
+      wardData[ward].penalty += penalty[issue.sev] || 5;
+    }
+  });
+
+  const wardNames = Object.keys(wardData);
+
+  if (!wardNames.length) {
+    document.getElementById('ward-scores').innerHTML =
+      `<div style="color:var(--muted);font-size:12px;padding:8px 0">
+        ${lang === 'fr'
+          ? 'Aucune donnée de quartier disponible. Les scores apparaîtront après les prochains signalements.'
+          : 'No ward data yet. Scores will appear as new issues are reported with location pins.'}
+      </div>`;
+    return;
+  }
+
+  // Compute score: start at 100, subtract penalties, floor at 0
+  const scored = wardNames.map(ward => {
+    const d = wardData[ward];
+    // Normalize penalty so a ward with 1 critical isn't instantly 0
+    // Cap max penalty at 80 so there's always some score shown
+    const rawScore = Math.max(0, 100 - Math.min(80, d.penalty));
+    // Bonus: each resolved issue adds back 2 pts (max +20)
+    const bonus = Math.min(20, d.resolved * 2);
+    const score = Math.min(100, Math.round(rawScore + bonus));
+    return { ward, score, total: d.total };
+  }).sort((a, b) => a.score - b.score); // worst first
+
+  document.getElementById('ward-scores').innerHTML = scored.map(({ ward, score, total }) => {
+    const col = score >= 75 ? 'var(--accent3)' : score >= 50 ? 'var(--accent)' : 'var(--accent2)';
+    return `<div class="ward-row">
+      <span title="${total} issue${total !== 1 ? 's' : ''}">${ward}</span>
+      <span class="ward-score" style="color:${col}">${score}/100</span>
+    </div>`;
   }).join('');
 }
 
