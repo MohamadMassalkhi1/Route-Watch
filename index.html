@@ -572,7 +572,7 @@ function subscribeRealtimeFirestore() {
 async function insertIssue(issue) {
   if (FIRESTORE_ADMIN_PROXY) {
     const id = String(issue.id || Date.now());
-    const payload = Object.assign({}, issue, { id: Number(id) });
+    const payload = Object.assign({}, issue, { id });
     const res = await fetch(FIRESTORE_ADMIN_PROXY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ op: 'create', issue: payload })
@@ -583,21 +583,20 @@ async function insertIssue(issue) {
   const id = String(issue.id || Date.now());
   const docRef = firestore.collection('issues').doc(id);
   const payload = {
-    id: Number(id),
+    id,                        // string
     type: issue.type,
     severity: issue.sev,
     city: issue.city,
     lat: issue.lat,
     lng: issue.lng,
     addr: issue.addr,
-    description: issue.desc,
+    description: issue.desc || '',
     votes: 0,
     resolved: false,
     resolve_votes: 0,
     created_at: new Date().toISOString(),
   };
   await docRef.set(payload);
-  // The realtime listener will pick this up and call renderAll() automatically.
   return payload;
 }
 
@@ -660,8 +659,11 @@ function dbRowToIssue(row) {
   } catch (e) { createdDate = new Date(); }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - createdDate.getTime()) / 86400000));
+  // Use the string id directly — do NOT convert to Number(), timestamp IDs
+  // exceed JS safe integer range and lose precision under Number().
+  const id = row.id != null ? String(row.id) : String(Date.now());
   return {
-    id: typeof row.id === 'string' ? Number(row.id) : (row.id || Date.now()),
+    id,                          // keep as string throughout
     type: row.type || 'other',
     sev: row.severity || 'medium',
     city: row.city || 'Ottawa',
