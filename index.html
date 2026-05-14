@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>RouteWatch — Ottawa-Gatineau Road Issue Map</title>
+<meta name="description" content="Citizen road issue reporting map for Ottawa-Gatineau. Report potholes, cracks, flooding and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Firebase (optional alternative to Supabase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --bg:#0d0f14; --surface:#151820; --surface2:#1c2030; --border:#2a2f42;
+  --accent:#f5c842; --accent2:#e8523a; --accent3:#4caf8c; --accent4:#5b8dee;
+  --text:#e8eaf0; --muted:#7a8099; --panel-w:390px;
+  --radius:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Instrument Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1000;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;letter-spacing:-.3px}
+.logo-text span{color:var(--accent)}
+.logo-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.4px}
+.header-stats{display:flex;gap:20px;flex-shrink:0}
+.stat-pill{display:flex;flex-direction:column;align-items:center;gap:1px}
+.stat-num{font-family:'Syne',sans-serif;font-weight:700;font-size:19px;line-height:1}
+.stat-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.header-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.btn{padding:6px 13px;border-radius:7px;border:none;cursor:pointer;font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:13px;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#0d0f14}
+.btn-primary:hover{background:#ffd43b;transform:translateY(-1px)}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+.icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 9px;font-size:14px;cursor:pointer;transition:all .12s}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── MAIN ── */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ── MAP ── */
+#map{flex:1;position:relative}
+.map-controls{position:absolute;top:12px;left:12px;z-index:900;display:flex;flex-direction:column;gap:7px}
+.map-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:'Instrument Sans',sans-serif;font-weight:600;display:flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.map-btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+.map-btn.active{background:rgba(245,200,66,.15);border-color:var(--accent);color:var(--accent)}
+.mode-banner{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;z-index:900;display:none;color:var(--accent);align-items:center;gap:10px;animation:pulseBorder 1.5s infinite;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.mode-banner.visible{display:flex}
+@keyframes pulseBorder{0%,100%{box-shadow:0 0 0 0 rgba(245,200,66,.3)}50%{box-shadow:0 0 0 6px rgba(245,200,66,0)}}
+
+/* ── PANEL ── */
+.panel{width:var(--panel-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.panel-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:11px 6px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+.tab-content{display:none;flex:1;overflow-y:auto;flex-direction:column}
+.tab-content.active{display:flex}
+.tab-content::-webkit-scrollbar{width:3px}
+.tab-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── SEARCH + SORT ── */
+.search-wrap{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13px;padding:8px 12px 8px 32px;outline:none;transition:border .15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237a8099' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--muted)}
+.sort-row{display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border);align-items:center;flex-shrink:0}
+.sort-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0}
+.sort-select{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-family:'DM Mono',monospace;padding:4px 8px;outline:none;cursor:pointer}
+.city-toggle{margin-left:auto;display:flex;gap:4px}
+.city-pill{padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .12s}
+.city-pill.ott.active{background:rgba(232,82,58,.2);border-color:var(--accent2);color:var(--accent2)}
+.city-pill.gat.active{background:rgba(91,141,238,.2);border-color:var(--accent4);color:var(--accent4)}
+
+/* ── FEED ── */
+.feed-header{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.feed-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:8px}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap}
+.filter-chip{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .15s;font-family:'DM Mono',monospace}
+.filter-chip.active,.filter-chip:hover{border-color:var(--accent);color:var(--accent)}
+.filter-chip[data-type="pothole"].active{border-color:var(--accent2);color:var(--accent2)}
+.filter-chip[data-type="crack"].active{border-color:#f59842;color:#f59842}
+.filter-chip[data-type="flooding"].active{border-color:var(--accent4);color:var(--accent4)}
+.filter-chip[data-type="signage"].active{border-color:var(--accent3);color:var(--accent3)}
+.filter-chip[data-type="sidewalk"].active{border-color:#c084fc;color:#c084fc}
+.empty-state{padding:40px 24px;text-align:center;color:var(--muted)}
+.empty-state .es-icon{font-size:40px;margin-bottom:12px}
+.empty-state .es-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:6px;color:var(--text)}
+.empty-state .es-sub{font-size:13px;line-height:1.6}
+
+/* ── ISSUE CARD ── */
+.issue-card{padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;position:relative}
+.issue-card:hover{background:var(--surface2)}
+.issue-card.highlighted{background:var(--surface2);border-left:3px solid var(--accent)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px}
+.card-type{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.type-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.card-severity{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;font-family:'DM Mono',monospace}
+.sev-critical{background:rgba(232,82,58,.2);color:var(--accent2)}
+.sev-high{background:rgba(245,152,66,.2);color:#f59842}
+.sev-medium{background:rgba(245,200,66,.2);color:var(--accent)}
+.sev-low{background:rgba(76,175,140,.2);color:var(--accent3)}
+.card-address{font-size:13px;font-weight:600;margin-bottom:3px}
+.card-meta{font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.city-badge{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;font-family:'DM Mono',monospace}
+.badge-ottawa{background:rgba(232,82,58,.15);color:var(--accent2)}
+.badge-gatineau{background:rgba(91,141,238,.15);color:var(--accent4)}
+.card-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px}
+.action-btn:hover{background:var(--border)}
+.action-btn.voted{background:rgba(245,200,66,.15);border-color:var(--accent);color:var(--accent)}
+.resolve-poll{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;margin-top:6px}
+.resolve-poll-bar{height:4px;background:var(--surface);border-radius:2px;margin:5px 0;overflow:hidden}
+.resolve-poll-fill{height:100%;background:var(--accent3);border-radius:2px;transition:width .4s}
+.resolve-poll-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;display:flex;justify-content:space-between}
+
+/* ── REPORT FORM ── */
+.report-inner{padding:14px;display:flex;flex-direction:column;gap:12px}
+.form-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block}
+.form-select,.form-input,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border .15s;appearance:none}
+.form-select:focus,.form-input:focus,.form-textarea:focus{border-color:var(--accent)}
+.form-textarea{resize:vertical;min-height:65px}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.type-btn{padding:9px 5px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;text-align:center;font-size:10px;font-weight:600;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.3px;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.type-btn .icon{font-size:18px}
+.type-btn:hover,.type-btn.selected{border-color:var(--accent);color:var(--accent);background:rgba(245,200,66,.08)}
+.severity-row{display:flex;gap:5px}
+.sev-btn{flex:1;padding:7px 3px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;font-family:'DM Mono',monospace;transition:all .15s;text-align:center}
+.sev-btn[data-sev="critical"]:hover,.sev-btn[data-sev="critical"].selected{border-color:var(--accent2);color:var(--accent2);background:rgba(232,82,58,.1)}
+.sev-btn[data-sev="high"]:hover,.sev-btn[data-sev="high"].selected{border-color:#f59842;color:#f59842;background:rgba(245,152,66,.1)}
+.sev-btn[data-sev="medium"]:hover,.sev-btn[data-sev="medium"].selected{border-color:var(--accent);color:var(--accent);background:rgba(245,200,66,.1)}
+.sev-btn[data-sev="low"]:hover,.sev-btn[data-sev="low"].selected{border-color:var(--accent3);color:var(--accent3);background:rgba(76,175,140,.1)}
+.location-pick{display:flex;gap:8px;align-items:center;padding:9px 12px;background:var(--surface2);border:1px dashed var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);transition:all .15s}
+.location-pick:hover{border-color:var(--accent);color:var(--accent)}
+.location-pick.active{border-color:var(--accent3);color:var(--accent3);border-style:solid}
+.photo-drop{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
+.photo-drop:hover,.photo-drop.drag{border-color:var(--accent);background:rgba(245,200,66,.04)}
+.photo-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.photo-preview{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.photo-thumb{width:64px;height:64px;border-radius:7px;object-fit:cover;border:1px solid var(--border)}
+.submit-btn{width:100%;padding:11px;border-radius:9px;border:none;background:var(--accent);color:#0d0f14;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s}
+.submit-btn:hover{background:#ffd43b;transform:translateY(-1px)}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.analyze-btn{width:100%;padding:9px;border-radius:8px;border:1px solid rgba(91,141,238,.4);background:rgba(91,141,238,.1);color:var(--accent4);font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.analyze-btn:hover{background:rgba(91,141,238,.2)}
+.info-box{background:rgba(91,141,238,.08);border:1px solid rgba(91,141,238,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:#8eb4f5;line-height:1.6;display:flex;gap:8px}
+
+/* ── STATS ── */
+.stats-inner{padding:14px;display:flex;flex-direction:column;gap:14px}
+.stats-section-title{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.donut-wrap{display:flex;align-items:center;gap:14px}
+.legend{display:flex;flex-direction:column;gap:5px}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:12px}
+.legend-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.bar-group{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-label{font-size:11px;color:var(--muted);width:115px;flex-shrink:0;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.bar-count{font-size:11px;color:var(--muted);width:22px;text-align:right;font-family:'DM Mono',monospace}
+.hm-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.hm-day{font-size:9px;color:var(--muted);text-align:center;font-family:'DM Mono',monospace}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.hm-cell{aspect-ratio:1;border-radius:3px;background:var(--surface2)}
+.score-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.ward-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.ward-row:last-child{border-bottom:none}
+.ward-score{font-family:'DM Mono',monospace;font-weight:600;font-size:13px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;animation:modalIn .22s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:15px}
+.modal-close{background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:16px 18px}
+
+/* ── AI ── */
+.ai-banner{background:linear-gradient(135deg,rgba(91,141,238,.12),rgba(76,175,140,.08));border:1px solid rgba(91,141,238,.25);border-radius:10px;padding:13px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start}
+.ai-title{font-weight:700;font-size:13px;margin-bottom:4px;color:var(--accent4)}
+.ai-text{font-size:13px;line-height:1.6}
+.ai-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.ai-chip{padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;font-family:'DM Mono',monospace}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent4);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-loading{display:flex;align-items:center;gap:10px;padding:10px 0;color:var(--muted);font-size:13px}
+
+/* ── EXPORT ── */
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.export-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px;cursor:pointer;transition:all .15s;text-align:center}
+.export-card:hover{border-color:var(--accent);background:rgba(245,200,66,.06)}
+.ec-icon{font-size:24px;margin-bottom:5px}
+.ec-title{font-size:12px;font-weight:700;margin-bottom:2px}
+.ec-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;z-index:9999;transition:transform .3s ease;display:flex;align-items:center;gap:7px;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:var(--accent3)}
+.toast.error{border-color:var(--accent2)}
+
+/* ── LEAFLET OVERRIDES ── */
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important;padding:0!important}
+.leaflet-popup-content{margin:0!important}
+.leaflet-popup-tip{background:var(--surface)!important}
+.leaflet-popup-close-button{color:var(--muted)!important;top:7px!important;right:9px!important}
+.leaflet-popup-close-button:hover{color:var(--text)!important}
+.leaflet-control-zoom{display:none}
+.leaflet-container{background:#0d0f14}
+.popup-inner{padding:13px 15px;min-width:230px}
+.popup-type{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.popup-address{font-weight:700;font-size:14px;margin-bottom:7px}
+.popup-meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px}
+.popup-desc{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.popup-actions{display:flex;gap:6px;flex-wrap:wrap}
+.popup-vote{padding:5px 11px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'DM Mono',monospace}
+.popup-vote:hover{border-color:var(--accent);color:var(--accent)}
+.popup-vote.voted{background:rgba(245,200,66,.15);border-color:var(--accent);color:var(--accent)}
+.popup-resolve{padding:5px 11px;border-radius:6px;border:1px solid rgba(76,175,140,.4);background:rgba(76,175,140,.1);color:var(--accent3);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Mono',monospace;transition:all .12s}
+.popup-resolve:hover{background:rgba(76,175,140,.2)}
+.popup-resolve.already-voted{opacity:.6;cursor:default}
+.resolve-bar-wrap{margin-top:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 9px}
+.resolve-bar-track{height:4px;background:var(--bg);border-radius:2px;margin:4px 0;overflow:hidden}
+.resolve-bar-fill{height:100%;background:var(--accent3);border-radius:2px;transition:width .4s}
+.resolve-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* ── LIGHT MODE ── */
+body.light{--bg:#f2f4f8;--surface:#fff;--surface2:#eef0f6;--border:#dde1ee;--text:#1a1d2e;--muted:#666e90}
+body.light .leaflet-container{filter:invert(1) hue-rotate(180deg) brightness(.92)}
+
+/* ── DB STATUS ── */
+.db-dot{width:7px;height:7px;border-radius:50%;background:var(--accent3);display:inline-block;animation:blink 2s infinite}
+.db-dot.offline{background:var(--accent2);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  :root{--panel-w:100%}
+  .main{flex-direction:column-reverse}
+  .panel{width:100%;height:45vh;border-left:none;border-top:1px solid var(--border)}
+  #map{height:55vh;flex:none}
+  .header-stats{display:none}
+  .logo-sub{display:none}
+  .map-controls{top:8px;left:8px}
+  header{padding:0 10px;gap:8px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛣️</div>
+    <div>
+      <div class="logo-text">Route<span>Watch</span></div>
+      <div class="logo-sub">Ottawa–Gatineau</div>
+    </div>
+  </div>
+
+  <div class="header-stats">
+    <div class="stat-pill">
+      <div class="stat-num" id="h-total" style="color:var(--accent)">0</div>
+      <div class="stat-lbl" data-i18n="hIssues">Issues</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num" id="h-critical" style="color:var(--accent2)">0</div>
+      <div class="stat-lbl" data-i18n="hCritical">Critical</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num" id="h-resolved" style="color:var(--accent3)">0</div>
+      <div class="stat-lbl" data-i18n="hResolved">Resolved</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num" id="h-votes" style="color:var(--accent4)">0</div>
+      <div class="stat-lbl" data-i18n="hVotes">Votes</div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <span title="Database" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">
+      <span class="db-dot" id="db-dot"></span><span id="db-label">DB</span>
+    </span>
+    <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
+    <button class="icon-btn" onclick="toggleLang()" id="lang-btn">FR</button>
+    <button class="btn btn-ghost" onclick="openModal('export-modal')" data-i18n="btnExport">⬇️ Export</button>
+    <button class="btn btn-primary" onclick="activateReportMode()" id="report-btn" data-i18n="btnReport">+ Report Issue</button>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+
+  <!-- MAP -->
+  <div id="map">
+    <div class="map-controls">
+      <button class="map-btn" id="heatmap-btn" onclick="toggleHeatmap()" data-i18n="btnHeatmap">🌡️ Heatmap</button>
+      <button class="map-btn" onclick="locateMe()" data-i18n="btnLocate">📍 My Location</button>
+      <button class="map-btn" onclick="toggleSatellite()" id="sat-btn" data-i18n="btnSatellite">🛰️ Satellite</button>
+    </div>
+    <div class="mode-banner" id="mode-banner">
+      <span data-i18n="pinMode">📌 Click on map to place pin</span>
+      <button style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px" onclick="cancelReport()" data-i18n="btnCancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="panel">
+    <div class="panel-tabs">
+      <div class="tab active" data-tab="feed" onclick="switchTab('feed')" data-i18n="tabFeed">Feed</div>
+      <div class="tab" data-tab="report" onclick="switchTab('report')" data-i18n="tabReport">Report</div>
+      <div class="tab" data-tab="stats" onclick="switchTab('stats')" data-i18n="tabStats">Insights</div>
+    </div>
+
+    <!-- ── TAB: FEED ── -->
+    <div class="tab-content active" id="tab-feed">
+      <div class="search-wrap">
+        <input class="search-input" id="search-input" placeholder="Search address, type…" oninput="renderFeed()">
+      </div>
+      <div class="feed-header">
+        <div class="feed-title" data-i18n="feedTitle">Recent Reports</div>
+        <div class="filter-row">
+          <div class="filter-chip active" data-type="all" onclick="filterByType('all',this)" data-i18n="filterAll">All</div>
+          <div class="filter-chip" data-type="pothole" onclick="filterByType('pothole',this)" data-i18n="filterPothole">Potholes</div>
+          <div class="filter-chip" data-type="crack" onclick="filterByType('crack',this)" data-i18n="filterCrack">Cracks</div>
+          <div class="filter-chip" data-type="flooding" onclick="filterByType('flooding',this)" data-i18n="filterFlooding">Flooding</div>
+          <div class="filter-chip" data-type="signage" onclick="filterByType('signage',this)" data-i18n="filterSignage">Signage</div>
+          <div class="filter-chip" data-type="sidewalk" onclick="filterByType('sidewalk',this)" data-i18n="filterSidewalk">Sidewalk</div>
+        </div>
+      </div>
+      <div class="sort-row">
+        <span class="sort-label" data-i18n="sortLabel">Sort:</span>
+        <select class="sort-select" id="sort-select" onchange="renderFeed()">
+          <option value="newest" data-i18n="sortNewest">Newest</option>
+          <option value="votes" data-i18n="sortVotes">Most Voted</option>
+          <option value="severity" data-i18n="sortSeverity">Critical First</option>
+        </select>
+        <div class="city-toggle">
+          <div class="city-pill ott active" id="pill-ott" onclick="toggleCity('Ottawa')">Ottawa</div>
+          <div class="city-pill gat active" id="pill-gat" onclick="toggleCity('Gatineau')">Gatineau</div>
+        </div>
+      </div>
+      <div id="issue-feed"></div>
+    </div>
+
+    <!-- ── TAB: REPORT ── -->
+    <div class="tab-content" id="tab-report">
+      <div class="report-inner">
+        <div class="info-box">ℹ️ <span data-i18n="reportInfo">Reports are aggregated and exported weekly to Ottawa 311 & Gatineau 311.</span></div>
+
+        <div>
+          <label class="form-label" data-i18n="labelType">Issue Type</label>
+          <div class="type-grid">
+            <button class="type-btn" data-type="pothole" onclick="selectType(this)"><span class="icon">🕳️</span><span data-i18n="typePothole">Pothole</span></button>
+            <button class="type-btn" data-type="crack" onclick="selectType(this)"><span class="icon">🪨</span><span data-i18n="typeCrack">Crack</span></button>
+            <button class="type-btn" data-type="flooding" onclick="selectType(this)"><span class="icon">💧</span><span data-i18n="typeFlooding">Flooding</span></button>
+            <button class="type-btn" data-type="signage" onclick="selectType(this)"><span class="icon">🚧</span><span data-i18n="typeSignage">Signage</span></button>
+            <button class="type-btn" data-type="sidewalk" onclick="selectType(this)"><span class="icon">🚶</span><span data-i18n="typeSidewalk">Sidewalk</span></button>
+            <button class="type-btn" data-type="other" onclick="selectType(this)"><span class="icon">⚠️</span><span data-i18n="typeOther">Other</span></button>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label" data-i18n="labelSeverity">Severity</label>
+          <div class="severity-row">
+            <button class="sev-btn" data-sev="low" onclick="selectSev(this)" data-i18n="sevLow">Low</button>
+            <button class="sev-btn" data-sev="medium" onclick="selectSev(this)" data-i18n="sevMedium">Medium</button>
+            <button class="sev-btn" data-sev="high" onclick="selectSev(this)" data-i18n="sevHigh">High</button>
+            <button class="sev-btn" data-sev="critical" onclick="selectSev(this)" data-i18n="sevCritical">Critical</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label" data-i18n="labelCity">Municipality</label>
+          <select class="form-select" id="city-select">
+            <option value="Ottawa">Ottawa</option>
+            <option value="Gatineau">Gatineau</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label" data-i18n="labelLocation">Location</label>
+          <div class="location-pick" id="location-pick" onclick="activateReportMode()">
+            <span>📍</span><span id="location-text" data-i18n="locationPick">Click to pick on map</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label" data-i18n="labelAddress">Street Address (optional)</label>
+          <input type="text" class="form-input" id="addr-input" placeholder="e.g. 123 Rideau St, Ottawa">
+        </div>
+
+        <div>
+          <label class="form-label" data-i18n="labelDesc">Description</label>
+          <textarea class="form-textarea" id="desc-input" placeholder="Size, hazard level, when noticed…"></textarea>
+        </div>
+
+        <div>
+          <label class="form-label" data-i18n="labelPhoto">Photo (optional)</label>
+          <div class="photo-drop" id="photo-drop">
+            <input type="file" accept="image/*" multiple onchange="handlePhotos(this)">
+            <div style="pointer-events:none">
+              <div style="font-size:24px;margin-bottom:4px">📷</div>
+              <div style="font-size:12px;color:var(--muted)" data-i18n="photoDrop">Drop photos or click to browse</div>
+              <div style="font-size:10px;color:var(--muted);opacity:.6;margin-top:2px;font-family:'DM Mono',monospace">JPG · PNG · max 5MB</div>
+            </div>
+          </div>
+          <div class="photo-preview" id="photo-preview"></div>
+        </div>
+
+        <button class="analyze-btn" onclick="openAiModal()">🤖 <span data-i18n="btnAnalyze">AI Analyze This Report</span></button>
+        <button class="submit-btn" id="submit-btn" onclick="submitReport()"><span data-i18n="btnSubmit">Submit Report →</span></button>
+      </div>
+    </div>
+
+    <!-- ── TAB: STATS ── -->
+    <div class="tab-content" id="tab-stats">
+      <div class="stats-inner">
+        <div>
+          <div class="stats-section-title" data-i18n="statsByType">By Issue Type</div>
+          <div class="donut-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90" id="donut-svg"></svg>
+            <div class="legend" id="donut-legend"></div>
+          </div>
+        </div>
+        <div>
+          <div class="stats-section-title" data-i18n="statsTopStreets">Top Streets</div>
+          <div class="bar-group" id="top-streets"></div>
+        </div>
+        <div>
+          <div class="stats-section-title" data-i18n="stats30Day">30-Day Activity</div>
+          <div class="hm-days" id="hm-days"></div>
+          <div class="heatmap-grid" id="hm-grid"></div>
+        </div>
+        <div>
+          <div class="stats-section-title" data-i18n="statsWard">Ward Condition Score</div>
+          <div class="score-card"><div id="ward-scores"></div></div>
+        </div>
+        <div>
+          <div class="stats-section-title" data-i18n="stats311">311 Contact</div>
+          <div class="info-box" style="flex-direction:column;gap:5px;font-size:12px">
+            <div>📞 Ottawa 311: <strong>311</strong> or <strong>613-580-2400</strong></div>
+            <div>📞 Gatineau 311: <strong>819-595-7633</strong></div>
+            <div>🌐 <a href="https://ottawa.ca/en/roads-transportation-and-parking/road-maintenance/report-road-concern" target="_blank" style="color:var(--accent4)" data-i18n="reportOttawa">Report to Ottawa online</a></div>
+            <div>🌐 <a href="https://www.gatineau.ca/toile/langue_anglais/residents/maintenance_entretien/roads_chaussees" target="_blank" style="color:var(--accent4)" data-i18n="reportGatineau">Report to Gatineau online</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /panel -->
+</div><!-- /main -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- AI MODAL -->
+<div class="modal-overlay" id="ai-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🤖 <span data-i18n="aiModalTitle">AI Issue Analysis</span></div>
+      <button class="modal-close" onclick="closeModal('ai-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="ai-modal-body">
+      <div class="ai-loading"><div class="spinner"></div> <span data-i18n="aiLoading">Analyzing…</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="exportTitle">⬇️ Export & Share</div>
+      <button class="modal-close" onclick="closeModal('export-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px" data-i18n="exportSub">Download data or share with city services.</p>
+      <div class="export-grid">
+        <div class="export-card" onclick="exportCSV()"><div class="ec-icon">📄</div><div class="ec-title">CSV</div><div class="ec-sub" data-i18n="exportCsvSub">Spreadsheet</div></div>
+        <div class="export-card" onclick="exportJSON()"><div class="ec-icon">🗂️</div><div class="ec-title">JSON</div><div class="ec-sub" data-i18n="exportJsonSub">Raw data</div></div>
+        <div class="export-card" onclick="copyShareLink()"><div class="ec-icon">🔗</div><div class="ec-title" data-i18n="exportLink">Share Link</div><div class="ec-sub" data-i18n="exportLinkSub">Copy URL</div></div>
+        <div class="export-card" onclick="send311Email()"><div class="ec-icon">📮</div><div class="ec-title" data-i18n="export311">Send to 311</div><div class="ec-sub" data-i18n="export311Sub">Email digest</div></div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="stats-section-title" data-i18n="exportSummaryTitle">Summary</div>
+        <pre id="export-summary" style="font-size:11px;line-height:1.8;color:var(--muted);background:var(--surface2);border-radius:8px;padding:11px;font-family:'DM Mono',monospace;white-space:pre-wrap;margin-top:6px"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// CONFIG — Choose a database provider (Firebase shown here as a free alternative)
+// If you still want to use Supabase, leave the SUPABASE_* values and follow
+// the instructions in DEPLOYMENT-GUIDE.md. To use Firebase, fill in
+// FIREBASE_CONFIG below and set CLAUDE_PROXY = '/.netlify/functions/analyze'
+// ══════════════════════════════════════════════════════════════════════════
+
+// Firebase config placeholder - replace with values from your Firebase console
+const FIREBASE_CONFIG = {
+  apiKey: 'YOUR_FIREBASE_API_KEY',
+  authDomain: 'YOUR_FIREBASE_AUTH_DOMAIN',
+  projectId: 'YOUR_FIREBASE_PROJECT_ID',
+  // storageBucket, messagingSenderId, appId optional
+};
+
+// Netlify function proxy (set to '/.netlify/functions/analyze' after deploy)
+const CLAUDE_PROXY = 'YOUR_NETLIFY_FUNCTION_URL'; // e.g. /.netlify/functions/analyze
+const RESOLVE_THRESHOLD = 50; // votes needed to auto-resolve
+
+// ══════════════════════════════════════════════════════════════════════════
+// DATABASE (Firebase Firestore alternative)
+// - Fill FIREBASE_CONFIG above to enable Firestore
+// - This provides realtime listeners and transactional increments
+// ══════════════════════════════════════════════════════════════════════════
+let db = null;           // wrapper object used by the app (keeps naming consistent)
+let firestore = null;    // actual Firestore instance
+let dbOnline = false;
+
+function setDbStatus(online) {
+  dbOnline = online;
+  const dot = document.getElementById('db-dot');
+  const lbl = document.getElementById('db-label');
+  if (dot) dot.className = 'db-dot' + (online ? '' : ' offline');
+  if (lbl) lbl.textContent = online ? 'Live' : 'Local';
+}
+
+async function initDatabase() {
+  try {
+    if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'YOUR_FIREBASE_API_KEY') {
+      // Initialize Firebase (compat for simpler migration)
+      firebase.initializeApp(FIREBASE_CONFIG);
+      firestore = firebase.firestore();
+      // Wrapper object with methods used by the app (keeps rest of code tidy)
+      db = {
+        insertIssue: insertIssue,
+        incrementVotes: incrementVotes,
+        incrementResolveVotes: incrementResolveVotes,
+        fetchIssues: fetchIssues,
+      };
+      setDbStatus(true);
+      subscribeRealtimeFirestore();
+    } else {
+      // No Firebase configured — run in local mode
+      console.warn('Firestore not configured — running in local mode');
+      setDbStatus(false);
+    }
+  } catch (e) {
+    console.error('Database init failed', e);
+    setDbStatus(false);
+  }
+}
+
+function subscribeRealtimeFirestore() {
+  if (!firestore) return;
+  const col = firestore.collection('issues').orderBy('created_at', 'desc');
+  col.onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      const doc = change.doc.data();
+      // Ensure the object shape matches dbRowToIssue input
+      const row = Object.assign({}, doc);
+      if (change.type === 'added') {
+        issues.unshift(dbRowToIssue(row));
+        renderAll();
+        showToast('🆕 ' + (lang==='fr'?'Nouveau signalement':'New report') + ': ' + row.addr, '');
+      } else if (change.type === 'modified') {
+        const idx = issues.findIndex(i => i.id === row.id);
+        if (idx !== -1) { issues[idx] = dbRowToIssue(row); renderAll(); }
+      } else if (change.type === 'removed') {
+        const idx = issues.findIndex(i => i.id === row.id);
+        if (idx !== -1) { issues.splice(idx,1); renderAll(); }
+      }
+    });
+  });
+}
+
+// Firestore helpers
+async function insertIssue(issue) {
+  if (!firestore) throw new Error('Firestore not initialized');
+  const id = String(issue.id || Date.now());
+  const docRef = firestore.collection('issues').doc(id);
+  const payload = {
+    id: Number(id),
+    type: issue.type,
+    severity: issue.sev,
+    city: issue.city,
+    lat: issue.lat,
+    lng: issue.lng,
+    addr: issue.addr,
+    description: issue.desc,
+    votes: 0,
+    resolved: false,
+    resolve_votes: 0,
+    created_at: new Date().toISOString(),
+  };
+  await docRef.set(payload);
+  return payload;
+}
+
+async function incrementVotes(id) {
+  if (!firestore) throw new Error('Firestore not initialized');
+  const ref = firestore.collection('issues').doc(String(id));
+  await firestore.runTransaction(async tx => {
+    const doc = await tx.get(ref);
+    if (!doc.exists) return;
+    const next = (doc.data().votes || 0) + 1;
+    tx.update(ref, { votes: next });
+  });
+}
+
+async function incrementResolveVotes(id, threshold) {
+  if (!firestore) throw new Error('Firestore not initialized');
+  const ref = firestore.collection('issues').doc(String(id));
+  await firestore.runTransaction(async tx => {
+    const doc = await tx.get(ref);
+    if (!doc.exists) return;
+    const data = doc.data();
+    const next = (data.resolve_votes || 0) + 1;
+    const updates = { resolve_votes: next };
+    if (next >= (threshold || RESOLVE_THRESHOLD)) updates.resolved = true;
+    tx.update(ref, updates);
+  });
+}
+
+async function fetchIssues(limit = 500) {
+  if (!firestore) return [];
+  const snap = await firestore.collection('issues').orderBy('created_at', 'desc').limit(limit).get();
+  return snap.docs.map(d => d.data()).map(dbRowToIssue);
+}
+
+function dbRowToIssue(row) {
+  const created = new Date(row.created_at);
+  const now = new Date();
+  const daysAgo = Math.floor((now - created) / 86400000);
+  return {
+    id: row.id, type: row.type, sev: row.severity, city: row.city,
+    lat: row.lat, lng: row.lng, addr: row.addr, desc: row.description,
+    votes: row.votes || 0, resolved: row.resolved || false,
+    resolveVotes: row.resolve_votes || 0, daysAgo,
+    createdAt: row.created_at,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// LOCAL STATE
+// ══════════════════════════════════════════════════════════════════════════
+let issues = [];
+let activeFilter = 'all';
+let reportMode = false;
+let selectedType = null;
+let selectedSev = null;
+let pendingLat = null, pendingLng = null;
+let markers = {};
+let heatCircles = [];
+let heatmapVisible = false;
+let satelliteMode = false;
+let cityFilter = { Ottawa: true, Gatineau: true };
+
+// Per-user vote tracking (localStorage — no login required)
+let votedIds      = new Set(JSON.parse(localStorage.getItem('rw_voted') || '[]'));
+let resolveVoted  = new Set(JSON.parse(localStorage.getItem('rw_resolve_voted') || '[]'));
+let pendingPhotos  = [];
+
+function saveLocalVotes() {
+  localStorage.setItem('rw_voted',         JSON.stringify([...votedIds]));
+  localStorage.setItem('rw_resolve_voted', JSON.stringify([...resolveVoted]));
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// I18N — FULL BILINGUAL SYSTEM
+// ══════════════════════════════════════════════════════════════════════════
+let lang = localStorage.getItem('rw_lang') || 'en';
+
+const STRINGS = {
+  en: {
+    // header stats
+    hIssues:'Issues', hCritical:'Critical', hResolved:'Resolved', hVotes:'Votes',
+    // buttons
+    btnExport:'⬇️ Export', btnReport:'+ Report Issue', btnHeatmap:'🌡️ Heatmap',
+    btnLocate:'📍 My Location', btnSatellite:'🛰️ Satellite', btnCancel:'Cancel',
+    btnAnalyze:'AI Analyze This Report', btnSubmit:'Submit Report →',
+    // tabs
+    tabFeed:'Feed', tabReport:'Report', tabStats:'Insights',
+    // feed
+    feedTitle:'Recent Reports',
+    filterAll:'All', filterPothole:'Potholes', filterCrack:'Cracks',
+    filterFlooding:'Flooding', filterSignage:'Signage', filterSidewalk:'Sidewalk',
+    sortLabel:'Sort:', sortNewest:'Newest', sortVotes:'Most Voted', sortSeverity:'Critical First',
+    // report form
+    reportInfo:'Reports are aggregated and exported weekly to Ottawa 311 & Gatineau 311.',
+    labelType:'Issue Type', labelSeverity:'Severity', labelCity:'Municipality',
+    labelLocation:'Location', locationPick:'Click to pick on map',
+    labelAddress:'Street Address (optional)', labelDesc:'Description',
+    labelPhoto:'Photo (optional)', photoDrop:'Drop photos or click to browse',
+    // type buttons
+    typePothole:'Pothole', typeCrack:'Crack', typeFlooding:'Flooding',
+    typeSignage:'Signage', typeSidewalk:'Sidewalk', typeOther:'Other',
+    // severity
+    sevLow:'Low', sevMedium:'Medium', sevHigh:'High', sevCritical:'Critical',
+    // pin mode
+    pinMode:'📌 Click on map to place pin',
+    // stats
+    statsByType:'By Issue Type', statsTopStreets:'Top Streets',
+    stats30Day:'30-Day Activity', statsWard:'Ward Condition Score', stats311:'311 Contact',
+    reportOttawa:'Report to Ottawa online', reportGatineau:'Report to Gatineau online',
+    // modals
+    aiModalTitle:'AI Issue Analysis', aiLoading:'Analyzing…',
+    exportTitle:'⬇️ Export & Share', exportSub:'Download data or share with city services.',
+    exportCsvSub:'Spreadsheet', exportJsonSub:'Raw data',
+    exportLink:'Share Link', exportLinkSub:'Copy URL',
+    export311:'Send to 311', export311Sub:'Email digest',
+    exportSummaryTitle:'Summary',
+    // cards
+    today:'Today', yesterday:'Yesterday', resolvedLabel:'✓ Resolved',
+    confirmVote:'👍 Confirm', voted:'✓ Voted',
+    resolveBtn:'✓ Mark Resolved', resolveVoted:'✓ Voted Resolved',
+    resolvePollLabel:'Community resolved votes:',
+    resolveNeeded:'needed to resolve',
+    // empty state
+    emptyTitle:'No issues reported yet',
+    emptySub:'Be the first to report a road issue in Ottawa-Gatineau.',
+    emptyBtn:'+ Report the first issue',
+    // toast
+    toastSubmitted:'✅ Issue reported! Thank you.',
+    toastVoted:'👍 Vote recorded!',
+    toastAlreadyVoted:'You already voted for this issue',
+    toastResolveCast:'✅ Resolve vote cast!',
+    toastAlreadyResolved:'You already voted to resolve this',
+    toastResolvedAuto:'🎉 Issue marked as resolved by community!',
+    toastCopied:'🔗 Link copied!',
+    toastLocating:'📍 Finding your location…',
+    toastLocationError:'Could not get your location. Check browser permissions.',
+    toastPickLocation:'⚠️ Please pick a location on the map',
+    toastPickType:'⚠️ Please select an issue type',
+    toastPickSev:'⚠️ Please select a severity level',
+    toastSaved:'✅ Saved to database',
+    toastSaveError:'⚠️ Saved locally (DB offline)',
+    searchPh:'Search address, type…',
+  },
+  fr: {
+    hIssues:'Signalements', hCritical:'Critiques', hResolved:'Résolus', hVotes:'Votes',
+    btnExport:'⬇️ Exporter', btnReport:'+ Signaler', btnHeatmap:'🌡️ Carte thermique',
+    btnLocate:'📍 Ma position', btnSatellite:'🛰️ Satellite', btnCancel:'Annuler',
+    btnAnalyze:'🤖 Analyser par IA', btnSubmit:'Soumettre →',
+    tabFeed:'Fil', tabReport:'Signaler', tabStats:'Statistiques',
+    feedTitle:'Signalements récents',
+    filterAll:'Tous', filterPothole:'Nids-de-poule', filterCrack:'Fissures',
+    filterFlooding:'Inondation', filterSignage:'Signalisation', filterSidewalk:'Trottoir',
+    sortLabel:'Tri :', sortNewest:'Plus récents', sortVotes:'Plus votés', sortSeverity:'Critiques d\'abord',
+    reportInfo:'Les signalements sont exportés chaque semaine au 311 Ottawa & 311 Gatineau.',
+    labelType:'Type de problème', labelSeverity:'Gravité', labelCity:'Municipalité',
+    labelLocation:'Emplacement', locationPick:'Cliquez pour choisir sur la carte',
+    labelAddress:'Adresse (optionnel)', labelDesc:'Description',
+    labelPhoto:'Photo (optionnel)', photoDrop:'Glissez des photos ou cliquez',
+    typePothole:'Nid-de-poule', typeCrack:'Fissure', typeFlooding:'Inondation',
+    typeSignage:'Signalisation', typeSidewalk:'Trottoir', typeOther:'Autre',
+    sevLow:'Faible', sevMedium:'Moyen', sevHigh:'Élevé', sevCritical:'Critique',
+    pinMode:'📌 Cliquez sur la carte pour placer l\'épingle',
+    statsByType:'Par type', statsTopStreets:'Rues principales',
+    stats30Day:'Activité 30 jours', statsWard:'Score par quartier', stats311:'Contact 311',
+    reportOttawa:'Signaler à Ottawa en ligne', reportGatineau:'Signaler à Gatineau en ligne',
+    aiModalTitle:'Analyse IA', aiLoading:'Analyse en cours…',
+    exportTitle:'⬇️ Exporter & Partager', exportSub:'Téléchargez les données ou partagez.',
+    exportCsvSub:'Tableur', exportJsonSub:'Données brutes',
+    exportLink:'Lien de partage', exportLinkSub:'Copier l\'URL',
+    export311:'Envoyer au 311', export311Sub:'Courriel digest',
+    exportSummaryTitle:'Résumé',
+    today:'Aujourd\'hui', yesterday:'Hier', resolvedLabel:'✓ Résolu',
+    confirmVote:'👍 Confirmer', voted:'✓ Voté',
+    resolveBtn:'✓ Marquer résolu', resolveVoted:'✓ Vote résolu envoyé',
+    resolvePollLabel:'Votes communautaires pour résolution :',
+    resolveNeeded:'nécessaires pour résoudre',
+    emptyTitle:'Aucun signalement pour l\'instant',
+    emptySub:'Soyez le premier à signaler un problème routier à Ottawa-Gatineau.',
+    emptyBtn:'+ Signaler le premier problème',
+    toastSubmitted:'✅ Signalement envoyé ! Merci.',
+    toastVoted:'👍 Vote enregistré !',
+    toastAlreadyVoted:'Vous avez déjà voté pour ce signalement',
+    toastResolveCast:'✅ Vote de résolution envoyé !',
+    toastAlreadyResolved:'Vous avez déjà voté pour résoudre ce problème',
+    toastResolvedAuto:'🎉 Problème marqué résolu par la communauté !',
+    toastCopied:'🔗 Lien copié !',
+    toastLocating:'📍 Localisation en cours…',
+    toastLocationError:'Impossible d\'obtenir votre position. Vérifiez les permissions du navigateur.',
+    toastPickLocation:'⚠️ Choisissez un emplacement sur la carte',
+    toastPickType:'⚠️ Sélectionnez un type de problème',
+    toastPickSev:'⚠️ Sélectionnez un niveau de gravité',
+    toastSaved:'✅ Enregistré dans la base de données',
+    toastSaveError:'⚠️ Sauvegardé localement (BD hors ligne)',
+    searchPh:'Recherche adresse, type…',
+  }
+};
+
+function t(key) { return STRINGS[lang][key] || STRINGS['en'][key] || key; }
+
+function applyI18n() {
+  // data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    el.textContent = t(key);
+  });
+  // Placeholders
+  const si = document.getElementById('search-input');
+  if (si) si.placeholder = t('searchPh');
+  // Sort options
+  document.querySelectorAll('#sort-select option').forEach(o => {
+    if (o.dataset.i18n) o.textContent = t(o.dataset.i18n);
+  });
+  // Location text
+  const lt = document.getElementById('location-text');
+  if (lt && !pendingLat) lt.textContent = t('locationPick');
+  // Mode banner
+  const mb = document.querySelector('#mode-banner [data-i18n="pinMode"]');
+  if (mb) mb.textContent = t('pinMode');
+  // Cancel button in banner
+  const cb = document.querySelector('#mode-banner button');
+  if (cb) cb.textContent = t('btnCancel');
+  // Lang toggle button
+  document.getElementById('lang-btn').textContent = lang === 'en' ? 'FR' : 'EN';
+  // html lang attr
+  document.documentElement.lang = lang;
+}
+
+function toggleLang() {
+  lang = lang === 'en' ? 'fr' : 'en';
+  localStorage.setItem('rw_lang', lang);
+  applyI18n();
+  renderFeed();
+  updateStats();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════════════════════════════════════
+const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const SAT_TILES  = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const ATTR = '&copy; OpenStreetMap contributors &copy; CARTO';
+
+const map = L.map('map', { center:[45.436, -75.702], zoom:13, zoomControl:false });
+L.control.zoom({ position:'bottomright' }).addTo(map);
+let tileLayer = L.tileLayer(DARK_TILES, { attribution:ATTR, maxZoom:19 }).addTo(map);
+
+const TYPE_META = {
+  pothole:  { color:'#e8523a', icon:'🕳️' },
+  crack:    { color:'#f59842', icon:'🪨' },
+  flooding: { color:'#5b8dee', icon:'💧' },
+  signage:  { color:'#4caf8c', icon:'🚧' },
+  sidewalk: { color:'#c084fc', icon:'🚶' },
+  other:    { color:'#7a8099', icon:'⚠️' },
+};
+const SEV_ORDER = { critical:0, high:1, medium:2, low:3 };
+
+function makeIcon(type, sev) {
+  const col = TYPE_META[type]?.color || '#7a8099';
+  const icon = TYPE_META[type]?.icon || '⚠️';
+  const sevCols = { critical:'#e8523a', high:'#f59842', medium:'#f5c842', low:'#4caf8c' };
+  const border = sevCols[sev] || '#7a8099';
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${col};border:2px solid ${border};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)"><span style="transform:rotate(45deg);font-size:13px">${icon}</span></div>`,
+    iconSize:[32,32], iconAnchor:[16,32], popupAnchor:[0,-34],
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// GEOLOCATION
+// ══════════════════════════════════════════════════════════════════════════
+let userLocationMarker = null;
+
+function locateMe() {
+  if (!navigator.geolocation) {
+    showToast(t('toastLocationError'), 'error');
+    return;
+  }
+  showToast(t('toastLocating'), '');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      map.flyTo([lat, lng], 16, { duration: 1 });
+      if (userLocationMarker) userLocationMarker.remove();
+      // Accuracy circle
+      L.circle([lat, lng], {
+        radius: accuracy,
+        color: '#5b8dee', fillColor: '#5b8dee',
+        fillOpacity: 0.08, weight: 1,
+      }).addTo(map);
+      userLocationMarker = L.circleMarker([lat, lng], {
+        radius: 8, color: '#fff', fillColor: '#5b8dee',
+        fillOpacity: 1, weight: 2,
+      }).addTo(map)
+        .bindPopup('<b>📍 ' + (lang==='fr'?'Vous êtes ici':'You are here') + '</b>')
+        .openPopup();
+
+      // If in report mode, auto-set pin location
+      if (reportMode) {
+        pendingLat = lat;
+        pendingLng = lng;
+        document.getElementById('location-text').textContent =
+          lat.toFixed(5) + ', ' + lng.toFixed(5);
+        document.getElementById('mode-banner').classList.remove('visible');
+        map.getContainer().style.cursor = '';
+        reportMode = false;
+      }
+    },
+    err => {
+      let msg = t('toastLocationError');
+      if (err.code === 1) msg = lang==='fr'
+        ? '⚠️ Permission refusée. Activez la géolocalisation dans votre navigateur.'
+        : '⚠️ Permission denied. Enable location in your browser settings.';
+      showToast(msg, 'error');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// REPORT MODE
+// ══════════════════════════════════════════════════════════════════════════
+function activateReportMode() {
+  reportMode = true;
+  switchTab('report');
+  document.getElementById('mode-banner').classList.add('visible');
+  document.getElementById('location-pick').classList.add('active');
+  document.getElementById('location-text').textContent = t('pinMode').replace('📌 ','');
+  map.getContainer().style.cursor = 'crosshair';
+}
+
+function cancelReport() {
+  reportMode = false;
+  document.getElementById('mode-banner').classList.remove('visible');
+  document.getElementById('location-pick').classList.remove('active');
+  document.getElementById('location-text').textContent = t('locationPick');
+  map.getContainer().style.cursor = '';
+  if (window._tmpMarker) { window._tmpMarker.remove(); window._tmpMarker = null; }
+  pendingLat = pendingLng = null;
+}
+
+map.on('click', e => {
+  if (!reportMode) return;
+  pendingLat = e.latlng.lat;
+  pendingLng = e.latlng.lng;
+  document.getElementById('location-text').textContent =
+    pendingLat.toFixed(5) + ', ' + pendingLng.toFixed(5);
+  document.getElementById('mode-banner').classList.remove('visible');
+  document.getElementById('location-pick').classList.remove('active');
+  map.getContainer().style.cursor = '';
+  reportMode = false;
+  if (window._tmpMarker) window._tmpMarker.remove();
+  window._tmpMarker = L.circleMarker([pendingLat, pendingLng], {
+    radius:10, color:'#f5c842', fillColor:'#f5c842', fillOpacity:.4, weight:2,
+  }).addTo(map);
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// SUBMIT REPORT
+// ══════════════════════════════════════════════════════════════════════════
+async function submitReport() {
+  if (!selectedType) { showToast(t('toastPickType'), 'error'); return; }
+  if (!selectedSev)  { showToast(t('toastPickSev'),  'error'); return; }
+  if (!pendingLat)   { showToast(t('toastPickLocation'), 'error'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+
+  const addr = document.getElementById('addr-input').value.trim()
+             || pendingLat.toFixed(4) + ', ' + pendingLng.toFixed(4);
+  const desc = document.getElementById('desc-input').value.trim()
+             || (lang==='fr'?'Aucune description.':'No description.');
+  const city = document.getElementById('city-select').value;
+
+  const issue = {
+    id: Date.now(),
+    type: selectedType, sev: selectedSev, city,
+    lat: pendingLat, lng: pendingLng,
+    addr, desc, votes: 0, resolved: false,
+    resolveVotes: 0, daysAgo: 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  // Save to configured DB (Firestore wrapper) or fallback locally
+  if (db && db.insertIssue) {
+    try {
+      await db.insertIssue(issue);
+      showToast(t('toastSaved'), 'success');
+    } catch (e) {
+      console.error(e);
+      issues.unshift(issue); // fallback local
+      showToast(t('toastSaveError'), '');
+    }
+  } else {
+    issues.unshift(issue);
+    showToast(t('toastSubmitted'), 'success');
+  }
+
+  // Reset form
+  selectedType = selectedSev = null;
+  pendingLat = pendingLng = null;
+  pendingPhotos = [];
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.sev-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('addr-input').value = '';
+  document.getElementById('desc-input').value = '';
+  document.getElementById('location-text').textContent = t('locationPick');
+  document.getElementById('photo-preview').innerHTML = '';
+  if (window._tmpMarker) { window._tmpMarker.remove(); window._tmpMarker = null; }
+
+  btn.disabled = false;
+  if (!db) renderAll();
+  switchTab('feed');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// VOTING
+// ══════════════════════════════════════════════════════════════════════════
+async function voteIssue(id) {
+  if (votedIds.has(id)) { showToast(t('toastAlreadyVoted'), ''); return; }
+  votedIds.add(id);
+  saveLocalVotes();
+
+  const issue = issues.find(i => i.id === id);
+  if (issue) { issue.votes++; }
+
+  if (db && db.incrementVotes) {
+    try { await db.incrementVotes(id); } catch(e){ console.error(e); }
+  }
+  renderFeed();
+  updateStats();
+  if (markers[id]) markers[id].setPopupContent(buildPopup(issues.find(i=>i.id===id)));
+  showToast(t('toastVoted'), 'success');
+}
+
+async function voteResolve(id) {
+  if (resolveVoted.has(id)) { showToast(t('toastAlreadyResolved'), ''); return; }
+  resolveVoted.add(id);
+  saveLocalVotes();
+
+  const issue = issues.find(i => i.id === id);
+  if (!issue) return;
+  issue.resolveVotes = (issue.resolveVotes || 0) + 1;
+
+  const autoResolve = issue.resolveVotes >= RESOLVE_THRESHOLD;
+  if (autoResolve) issue.resolved = true;
+
+  if (db && db.incrementResolveVotes) {
+    try { await db.incrementResolveVotes(id, RESOLVE_THRESHOLD); } catch(e){ console.error(e); }
+  }
+
+  renderAll();
+  if (autoResolve) showToast(t('toastResolvedAuto'), 'success');
+  else showToast(t('toastResolveCast'), 'success');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MARKERS
+// ══════════════════════════════════════════════════════════════════════════
+function renderMarkers() {
+  Object.values(markers).forEach(m => m.remove());
+  markers = {};
+  issues
+    .filter(i => cityFilter[i.city] && (activeFilter==='all' || i.type===activeFilter))
+    .forEach(issue => {
+      const m = L.marker([issue.lat, issue.lng], { icon: makeIcon(issue.type, issue.sev) })
+        .addTo(map)
+        .bindPopup(buildPopup(issue), { maxWidth:290 });
+      m.on('click', () => highlightCard(issue.id));
+      markers[issue.id] = m;
+    });
+  updateHeatmap();
+}
+
+function buildPopup(issue) {
+  if (!issue) return '';
+  const meta = TYPE_META[issue.type] || TYPE_META.other;
+  const voted = votedIds.has(issue.id);
+  const resolveVotedAlready = resolveVoted.has(issue.id);
+  const pct = Math.min(100, Math.round(((issue.resolveVotes||0) / RESOLVE_THRESHOLD) * 100));
+  const sevLabel = { critical: lang==='fr'?'CRITIQUE':'CRITICAL', high: lang==='fr'?'ÉLEVÉ':'HIGH', medium: lang==='fr'?'MOYEN':'MEDIUM', low: lang==='fr'?'FAIBLE':'LOW' }[issue.sev] || issue.sev;
+  return `<div class="popup-inner">
+    <div class="popup-type">
+      <span style="width:7px;height:7px;border-radius:50%;background:${meta.color};display:inline-block"></span>
+      ${getTypeLabelFull(issue.type)} &middot; <span class="city-badge badge-${issue.city.toLowerCase()}">${issue.city}</span>
+    </div>
+    <div class="popup-address">${issue.addr}</div>
+    <div class="popup-meta">
+      <span class="card-severity sev-${issue.sev}">${sevLabel}</span>
+      ${issue.resolved ? '<span class="card-severity" style="background:rgba(76,175,140,.2);color:#4caf8c">✓ '+(lang==='fr'?'RÉSOLU':'RESOLVED')+'</span>' : ''}
+    </div>
+    <div class="popup-desc">${issue.desc}</div>
+    <div class="popup-actions">
+      <button class="popup-vote ${voted?'voted':''}" onclick="voteIssue(${issue.id})">
+        ${voted ? t('voted') : t('confirmVote')} &middot; ${issue.votes}
+      </button>
+      ${!issue.resolved ? `<button class="popup-resolve ${resolveVotedAlready?'already-voted':''}" onclick="voteResolve(${issue.id})">
+        ${resolveVotedAlready ? t('resolveVoted') : t('resolveBtn')}
+      </button>` : ''}
+    </div>
+    ${!issue.resolved ? `<div class="resolve-bar-wrap">
+      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${t('resolvePollLabel')} ${issue.resolveVotes||0}/${RESOLVE_THRESHOLD}</div>
+      <div class="resolve-bar-track"><div class="resolve-bar-fill" style="width:${pct}%"></div></div>
+      <div class="resolve-bar-labels"><span>${pct}%</span><span>${RESOLVE_THRESHOLD - (issue.resolveVotes||0)} ${t('resolveNeeded')}</span></div>
+    </div>` : ''}
+  </div>`;
+}
+
+function getTypeLabelFull(type) {
+  const map = {
+    pothole:  { en:'Pothole',   fr:'Nid-de-poule' },
+    crack:    { en:'Crack',     fr:'Fissure' },
+    flooding: { en:'Flooding',  fr:'Inondation' },
+    signage:  { en:'Signage',   fr:'Signalisation' },
+    sidewalk: { en:'Sidewalk',  fr:'Trottoir' },
+    other:    { en:'Other',     fr:'Autre' },
+  };
+  return map[type]?.[lang] || type;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEED
+// ══════════════════════════════════════════════════════════════════════════
+function getSortedFiltered() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const sort = document.getElementById('sort-select')?.value || 'newest';
+  let list = issues.filter(i => {
+    if (!cityFilter[i.city]) return false;
+    if (activeFilter !== 'all' && i.type !== activeFilter) return false;
+    if (q && !i.addr.toLowerCase().includes(q) && !getTypeLabelFull(i.type).toLowerCase().includes(q) && !i.desc.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (sort === 'votes')    list.sort((a,b) => b.votes - a.votes);
+  else if (sort === 'severity') list.sort((a,b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev]);
+  else list.sort((a,b) => a.daysAgo - b.daysAgo);
+  return list;
+}
+
+function dayLabel(n) {
+  if (n === 0) return t('today');
+  if (n === 1) return t('yesterday');
+  return lang==='fr' ? `Il y a ${n} j` : `${n}d ago`;
+}
+
+function renderFeed() {
+  const feed = document.getElementById('issue-feed');
+  const filtered = getSortedFiltered();
+
+  if (!filtered.length) {
+    const isSearch = (document.getElementById('search-input')?.value||'').length > 0;
+    feed.innerHTML = `<div class="empty-state">
+      <div class="es-icon">${isSearch ? '🔍' : '🛣️'}</div>
+      <div class="es-title">${isSearch ? (lang==='fr'?'Aucun résultat':'No results') : t('emptyTitle')}</div>
+      <div class="es-sub">${isSearch ? '' : t('emptySub')}</div>
+      ${!isSearch ? `<button class="btn btn-primary" style="margin:14px auto 0;display:flex" onclick="activateReportMode()">${t('emptyBtn')}</button>` : ''}
+    </div>`;
+    return;
+  }
+
+  feed.innerHTML = filtered.map(issue => {
+    const meta = TYPE_META[issue.type] || TYPE_META.other;
+    const voted = votedIds.has(issue.id);
+    const resolveVotedAlready = resolveVoted.has(issue.id);
+    const pct = Math.min(100, Math.round(((issue.resolveVotes||0)/RESOLVE_THRESHOLD)*100));
+    const typeLabel = getTypeLabelFull(issue.type);
+    const sevKey = { critical:'sevCritical', high:'sevHigh', medium:'sevMedium', low:'sevLow' }[issue.sev];
+
+    return `<div class="issue-card ${issue.resolved?'resolved-card':''}" id="card-${issue.id}" onclick="flyTo(${issue.id})">
+      <div class="card-top">
+        <div class="card-type">
+          <span class="type-dot" style="background:${meta.color}"></span>
+          ${typeLabel} &middot; <span class="city-badge badge-${issue.city.toLowerCase()}">${issue.city}</span>
+        </div>
+        <span class="card-severity sev-${issue.sev}">${t(sevKey)}</span>
+      </div>
+      <div class="card-address">${issue.addr}</div>
+      <div class="card-meta">
+        <span>${dayLabel(issue.daysAgo)}</span>
+        ${issue.resolved ? `<span style="color:var(--accent3)">${t('resolvedLabel')}</span>` : ''}
+      </div>
+      <div class="card-actions">
+        <button class="action-btn ${voted?'voted':''}" onclick="event.stopPropagation();voteIssue(${issue.id})">
+          ${voted ? t('voted') : t('confirmVote')} &middot; ${issue.votes}
+        </button>
+      </div>
+      ${!issue.resolved ? `<div class="resolve-poll" onclick="event.stopPropagation()">
+        <div class="resolve-poll-label">
+          <span>${t('resolvePollLabel')} ${issue.resolveVotes||0}/${RESOLVE_THRESHOLD}</span>
+          <span>${pct}%</span>
+        </div>
+        <div class="resolve-poll-bar"><div class="resolve-poll-fill" style="width:${pct}%"></div></div>
+        <button class="action-btn ${resolveVotedAlready?'voted':''}" style="width:100%;justify-content:center;margin-top:2px"
+          onclick="voteResolve(${issue.id})">
+          ${resolveVotedAlready ? t('resolveVoted') : t('resolveBtn')}
+        </button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function flyTo(id) {
+  const issue = issues.find(i => i.id === id);
+  if (!issue) return;
+  map.flyTo([issue.lat, issue.lng], 16, { duration:.8 });
+  setTimeout(() => markers[id]?.openPopup(), 900);
+  highlightCard(id);
+}
+
+function highlightCard(id) {
+  document.querySelectorAll('.issue-card').forEach(c => c.classList.remove('highlighted'));
+  const card = document.getElementById('card-'+id);
+  if (card) { card.classList.add('highlighted'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+}
+
+function filterByType(type, el) {
+  activeFilter = type;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderMarkers();
+  renderFeed();
+}
+
+function toggleCity(city) {
+  cityFilter[city] = !cityFilter[city];
+  const id = city==='Ottawa' ? 'pill-ott' : 'pill-gat';
+  document.getElementById(id).classList.toggle('active', cityFilter[city]);
+  renderMarkers();
+  renderFeed();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════════════════════════════════════
+function updateStats() {
+  document.getElementById('h-total').textContent    = issues.length;
+  document.getElementById('h-critical').textContent = issues.filter(i=>i.sev==='critical'&&!i.resolved).length;
+  document.getElementById('h-resolved').textContent = issues.filter(i=>i.resolved).length;
+  document.getElementById('h-votes').textContent    = issues.reduce((s,i)=>s+i.votes,0);
+  renderDonut();
+  renderTopStreets();
+  renderHeatmapGrid();
+  renderWardScores();
+}
+
+function renderDonut() {
+  const counts = {};
+  Object.keys(TYPE_META).forEach(t => counts[t]=0);
+  issues.forEach(i => counts[i.type]=(counts[i.type]||0)+1);
+  const total = issues.length || 1;
+  const cx=45,cy=45,r=32,sw=13, circ=2*Math.PI*r;
+  let offset=0, paths='', legend='';
+  Object.entries(counts).forEach(([type,count]) => {
+    if (!count) return;
+    const dash = (count/total)*circ;
+    const col = TYPE_META[type].color;
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}"
+      stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}"
+      transform="rotate(-90 ${cx} ${cy})" opacity=".85"/>`;
+    offset += dash;
+    legend += `<div class="legend-item"><div class="legend-dot" style="background:${col}"></div><span>${TYPE_META[type].icon} ${getTypeLabelFull(type)} (${count})</span></div>`;
+  });
+  document.getElementById('donut-svg').innerHTML = paths ||
+    `<circle cx="45" cy="45" r="32" fill="none" stroke="var(--surface2)" stroke-width="13"/>`;
+  document.getElementById('donut-legend').innerHTML = legend ||
+    `<div style="color:var(--muted);font-size:12px">${lang==='fr'?'Aucune donnée':'No data yet'}</div>`;
+}
+
+function renderTopStreets() {
+  const counts = {};
+  issues.forEach(i => { const k=i.addr.split('&')[0].trim(); counts[k]=(counts[k]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const max = sorted[0]?.[1] || 1;
+  document.getElementById('top-streets').innerHTML = sorted.length
+    ? sorted.map(([s,c]) => `<div class="bar-row">
+        <div class="bar-label" title="${s}">${s.substring(0,16)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${c/max*100}%;background:var(--accent)"></div></div>
+        <div class="bar-count">${c}</div>
+      </div>`).join('')
+    : `<div style="color:var(--muted);font-size:12px;padding:4px 0">${lang==='fr'?'Aucune donnée':'No data yet'}</div>`;
+}
+
+function renderHeatmapGrid() {
+  const days = lang==='fr'
+    ? ['D','L','M','M','J','V','S']
+    : ['S','M','T','W','T','F','S'];
+  document.getElementById('hm-days').innerHTML = days.map(d=>`<div class="hm-day">${d}</div>`).join('');
+  const cells = Array(28).fill(0);
+  issues.forEach(i => { const d=Math.min(i.daysAgo,27); cells[27-d]++; });
+  const max = Math.max(...cells,1);
+  document.getElementById('hm-grid').innerHTML = cells.map(c => {
+    const col = c===0 ? 'var(--surface2)' : `rgba(245,200,66,${.15+c/max*.85})`;
+    return `<div class="hm-cell" style="background:${col}" title="${c}"></div>`;
+  }).join('');
+}
+
+function renderWardScores() {
+  const wards = [
+    { name:'Rideau-Vanier', score:62 }, { name:'Kitchissippi', score:74 },
+    { name:'Alta Vista', score:78 },    { name:'College', score:71 },
+    { name:'Gatineau — Aylmer', score:69 }, { name:'Hull', score:65 },
+  ];
+  document.getElementById('ward-scores').innerHTML = wards.map(w => {
+    const col = w.score>=75?'var(--accent3)':w.score>=65?'var(--accent)':'var(--accent2)';
+    return `<div class="ward-row"><span>${w.name}</span><span class="ward-score" style="color:${col}">${w.score}/100</span></div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// HEATMAP / SATELLITE
+// ══════════════════════════════════════════════════════════════════════════
+function toggleHeatmap() {
+  heatmapVisible = !heatmapVisible;
+  document.getElementById('heatmap-btn').classList.toggle('active', heatmapVisible);
+  updateHeatmap();
+}
+
+function updateHeatmap() {
+  heatCircles.forEach(c => c.remove());
+  heatCircles = [];
+  if (!heatmapVisible) return;
+  issues.forEach(issue => {
+    const c = L.circle([issue.lat, issue.lng], {
+      radius: 200 + issue.votes * 10,
+      color: TYPE_META[issue.type]?.color || '#888',
+      fillColor: TYPE_META[issue.type]?.color || '#888',
+      fillOpacity: .1, weight: 0,
+    }).addTo(map);
+    heatCircles.push(c);
+  });
+}
+
+function toggleSatellite() {
+  satelliteMode = !satelliteMode;
+  tileLayer.remove();
+  tileLayer = L.tileLayer(satelliteMode ? SAT_TILES : DARK_TILES, { maxZoom:19, attribution:ATTR }).addTo(map);
+  document.getElementById('sat-btn').classList.toggle('active', satelliteMode);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════════════════════════════════════
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent =
+    document.body.classList.contains('light') ? '🌞' : '🌙';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='stats') updateStats();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FORM HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+function selectType(el) {
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedType = el.dataset.type;
+}
+
+function selectSev(el) {
+  document.querySelectorAll('.sev-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSev = el.dataset.sev;
+}
+
+function handlePhotos(input) {
+  const preview = document.getElementById('photo-preview');
+  preview.innerHTML = '';
+  pendingPhotos = [];
+  Array.from(input.files).slice(0,4).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingPhotos.push(e.target.result);
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'photo-thumb';
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AI ANALYSIS
+// ══════════════════════════════════════════════════════════════════════════
+function openAiModal() {
+  document.getElementById('ai-modal-body').innerHTML =
+    `<div class="ai-loading"><div class="spinner"></div> ${t('aiLoading')}</div>`;
+  openModal('ai-modal');
+
+  const type = selectedType || 'other';
+  const sev  = selectedSev  || 'medium';
+  const addr = document.getElementById('addr-input')?.value || '';
+  const desc = document.getElementById('desc-input')?.value || '';
+  const city = document.getElementById('city-select')?.value || 'Ottawa';
+
+  const prompt = `You are a municipal road infrastructure analyst for the Ottawa-Gatineau region in Canada.
+A citizen reported: Type=${type}, Severity=${sev}, Location="${addr}", City=${city}, Description="${desc}".
+Respond ONLY with this JSON (no markdown, no preamble):
+{"analysis":"3-sentence analysis covering cause, urgency, safety impact","urgency":"e.g. 1-3 days","department":"responsible city dept","tags":["tag1","tag2","tag3"],"riskScore":0-100}`;
+
+  // Try proxy first, fall back to demo mode
+  const proxyUrl = CLAUDE_PROXY !== 'YOUR_NETLIFY_FUNCTION_URL' ? CLAUDE_PROXY : null;
+
+  if (proxyUrl) {
+    fetch(proxyUrl, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type, sev, addr, city, desc, lang }),
+    })
+    .then(r=>r.json())
+    .then(data => renderAiResult(data))
+    .catch(() => renderAiResult(fallbackAnalysis(type,sev,city)));
+  } else {
+    // Demo fallback (no API key needed)
+    setTimeout(() => renderAiResult(fallbackAnalysis(type, sev, city)), 800);
+  }
+}
+
+function fallbackAnalysis(type, sev, city) {
+  const isFr = lang === 'fr';
+  const map = {
+    pothole: {
+      analysis: isFr
+        ? `Ce nid-de-poule est typiquement causé par les cycles gel-dégel d'Ottawa-Gatineau. ${sev==='critical'?'Une réparation immédiate est requise.':'Une réparation est à planifier.'} Signalez-le au 311 pour une intervention.`
+        : `This pothole is typical of Ottawa-Gatineau's freeze-thaw cycles. ${sev==='critical'?'Immediate repair required.':'Schedule for next maintenance cycle.'} Report to 311 for fastest response.`,
+      urgency: sev==='critical'?'1–3 days':sev==='high'?'1–2 weeks':'2–4 weeks',
+      department: `${city} Public Works — Roads`,
+      tags: isFr?['Gel-Dégel','Réparation Urgente','Revêtement']:['Freeze-Thaw','Urgent Repair','Asphalt'],
+      riskScore: sev==='critical'?88:sev==='high'?68:50,
+    },
+    flooding: {
+      analysis: isFr
+        ? `Les inondations routières à ${city} sont souvent liées à des puisards bouchés. Évitez la zone et signalez immédiatement au 311.`
+        : `Road flooding in ${city} is typically caused by blocked catch basins. Avoid the area and report to 311 immediately.`,
+      urgency:'1–3 days', department:`${city} Drainage & Storm Water`,
+      tags: isFr?['Égout Bouché','Urgence','Eau de Surface']:['Blocked Drain','Urgent','Storm Water'],
+      riskScore:76,
+    },
+    crack: {
+      analysis: isFr
+        ? `Les fissures de chaussée à ${city} résultent du stress thermique et du vieillissement. Sans traitement, elles évoluent en nids-de-poule. Un colmatage préventif est recommandé.`
+        : `Pavement cracking in ${city} results from thermal stress and aging. Untreated cracks become potholes. Preventive crack sealing is recommended.`,
+      urgency:'2–6 weeks', department:`${city} Road Maintenance`,
+      tags: isFr?['Vieillissement','Maintenance Préventive','Fissure']:['Aging','Preventive','Crack Sealing'],
+      riskScore:42,
+    },
+    signage: {
+      analysis: isFr
+        ? `La signalisation manquante ou endommagée constitue un risque grave, surtout aux intersections. Le service de circulation de ${city} doit être contacté rapidement.`
+        : `Missing or damaged signage is a serious safety risk, especially at intersections. ${city} Traffic Operations must be contacted promptly.`,
+      urgency:sev==='critical'?'Same day':'3–7 days', department:`${city} Traffic Operations`,
+      tags: isFr?['Sécurité Routière','Signalisation','Intersection']:['Traffic Safety','Signage','Intersection'],
+      riskScore:sev==='critical'?84:46,
+    },
+    sidewalk: {
+      analysis: isFr
+        ? `Les trottoirs endommagés à ${city} présentent des risques pour les piétons, notamment les personnes à mobilité réduite. La ville priorise les réparations près des arrêts de transport en commun.`
+        : `Damaged sidewalks in ${city} pose trip hazards, especially for seniors and wheelchair users. The city prioritizes repairs near transit stops and schools.`,
+      urgency:'1–3 weeks', department:`${city} Pedestrian Infrastructure`,
+      tags: isFr?['Accessibilité','Risque Chute','LAPHO']:['Accessibility','Trip Hazard','AODA'],
+      riskScore:54,
+    },
+    other: {
+      analysis: isFr
+        ? `Signalez ce problème au 311 de ${city} avec le maximum de détails et de photos. Conservez votre numéro de référence pour le suivi.`
+        : `Report this issue to ${city} 311 with as many details and photos as possible. Keep your reference number for follow-up.`,
+      urgency:'2–4 weeks', department:`${city} 311`,
+      tags: isFr?['Infrastructure','311','Suivi']:['Infrastructure','311 Report','Follow-Up'],
+      riskScore:40,
+    },
+  };
+  return map[type] || map.other;
+}
+
+function renderAiResult(data) {
+  const riskColor = data.riskScore>=75?'var(--accent2)':data.riskScore>=50?'var(--accent)':'var(--accent3)';
+  const tagCols = [['rgba(91,141,238,.2)','var(--accent4)'],['rgba(76,175,140,.2)','var(--accent3)'],['rgba(245,200,66,.2)','var(--accent)']];
+  const circ = 2*Math.PI*24;
+  const dash = (data.riskScore/100)*circ;
+  const tags = (data.tags||[]).map((tag,i)=>
+    `<span class="ai-chip" style="background:${tagCols[i%3][0]};color:${tagCols[i%3][1]}">${tag}</span>`
+  ).join('');
+  document.getElementById('ai-modal-body').innerHTML = `
+    <div class="ai-banner">
+      <div style="font-size:22px;flex-shrink:0">🤖</div>
+      <div>
+        <div class="ai-title">${t('aiModalTitle')}</div>
+        <div class="ai-text">${data.analysis}</div>
+        <div class="ai-chips">${tags}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px">
+        <div class="stats-section-title" style="margin-bottom:7px">${lang==='fr'?'Score de risque':'Risk Score'}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="var(--surface)" stroke-width="5"/>
+            <circle cx="26" cy="26" r="24" fill="none" stroke="${riskColor}" stroke-width="5"
+              stroke-dasharray="${dash} ${circ-dash}" stroke-linecap="round" transform="rotate(-90 26 26)"/>
+          </svg>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:${riskColor}">${data.riskScore}</div>
+            <div style="font-size:10px;color:var(--muted)">/100</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px">
+        <div class="stats-section-title" style="margin-bottom:7px">${lang==='fr'?'Délai estimé':'Urgency'}</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--accent)">${data.urgency}</div>
+      </div>
+    </div>
+    <div class="info-box" style="margin-bottom:12px">🏢 <span><strong>${lang==='fr'?'Contact':'Contact'}:</strong> ${data.department}</span></div>
+    <button onclick="closeModal('ai-modal')" class="submit-btn" style="background:var(--accent4);color:#fff">${lang==='fr'?'Retour au signalement':'Back to Report'}</button>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXPORT / SHARE / 311
+// ══════════════════════════════════════════════════════════════════════════
+function openExportModal() {
+  const total=issues.length, critical=issues.filter(i=>i.sev==='critical').length,
+        resolved=issues.filter(i=>i.resolved).length, votes=issues.reduce((s,i)=>s+i.votes,0),
+        ottawa=issues.filter(i=>i.city==='Ottawa').length,
+        gatineau=issues.filter(i=>i.city==='Gatineau').length;
+  document.getElementById('export-summary').textContent =
+`Total: ${total} | Critical: ${critical} | Resolved: ${resolved}
+Ottawa: ${ottawa} | Gatineau: ${gatineau}
+Total votes: ${votes}
+Date: ${new Date().toLocaleDateString(lang==='fr'?'fr-CA':'en-CA')}`;
+  openModal('export-modal');
+}
+
+function exportCSV() {
+  const rows = [['ID','Type','Severity','City','Address','Description','Votes','Resolve Votes','Resolved','Created']];
+  issues.forEach(i=>rows.push([i.id,i.type,i.sev,i.city,`"${i.addr}"`,`"${i.desc}"`,i.votes,i.resolveVotes||0,i.resolved,i.createdAt||'']));
+  downloadFile('routewatch-ottawa.csv','text/csv',rows.map(r=>r.join(',')).join('\n'));
+  showToast('📄 CSV downloaded!','success');
+}
+
+function exportJSON() {
+  downloadFile('routewatch-ottawa.json','application/json',JSON.stringify(issues,null,2));
+  showToast('🗂️ JSON downloaded!','success');
+}
+
+function downloadFile(name,mime,content) {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=name; a.click();
+}
+
+function copyShareLink() {
+  navigator.clipboard.writeText(window.location.href)
+    .then(()=>showToast(t('toastCopied'),'success'))
+    .catch(()=>showToast('Copy failed','error'));
+}
+
+function send311Email() {
+  const critical = issues.filter(i=>i.sev==='critical'&&!i.resolved);
+  const body = encodeURIComponent(
+    `RouteWatch Ottawa-Gatineau — Weekly Report\n\n` +
+    `Total issues: ${issues.length}\nCritical: ${critical.length}\n\n` +
+    critical.slice(0,5).map(i=>`- ${i.type.toUpperCase()} at ${i.addr} (${i.city}): ${i.desc}`).join('\n') +
+    `\n\nFull data: ${window.location.href}`
+  );
+  window.open(`mailto:311@ottawa.ca?subject=RouteWatch%20Road%20Issues%20Report&body=${body}`);
+  closeModal('export-modal');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); })
+);
+
+// ══════════════════════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (type||'');
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 3200);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// LOAD FROM SUPABASE
+// ══════════════════════════════════════════════════════════════════════════
+async function loadIssues() {
+  if (!db || !db.fetchIssues) { renderAll(); return; }
+  try {
+    issues = await db.fetchIssues(500);
+    renderAll();
+  } catch (e) {
+    console.error('Failed to load issues from DB', e);
+    renderAll();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════════════════════════════════════
+function renderAll() {
+  renderMarkers();
+  renderFeed();
+  updateStats();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════
+initDatabase();
+applyI18n();
+loadIssues();
+</script>
+</body>
+</html>
