@@ -525,7 +525,8 @@ const FIREBASE_CONFIG = {
 
 // If you prefer server-side admin via Netlify (recommended for production),
 // set this to '/.netlify/functions/firestore-admin' and add FIREBASE_ADMIN_JSON in Netlify env.
-const FIRESTORE_ADMIN_PROXY = '/.netlify/functions/firestore-admin';
+// By default we leave it empty so the client writes directly to Firestore (pins persist immediately).
+const FIRESTORE_ADMIN_PROXY = '';
 
 // Netlify function proxy (set to '/.netlify/functions/analyze' after deploy)
 const CLAUDE_PROXY = '/.netlify/functions/analyze'; // e.g. /.netlify/functions/analyze
