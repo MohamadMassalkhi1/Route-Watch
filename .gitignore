@@ -1,0 +1,5 @@
+
+# Local env / secrets
+.env
+.env.*
+route-watch-firebase-adminsdk-*.json
