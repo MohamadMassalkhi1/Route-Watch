@@ -663,11 +663,9 @@ function dbRowToIssue(row) {
   } catch (e) { createdDate = new Date(); }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - createdDate.getTime()) / 86400000));
-  // Use the string id directly — do NOT convert to Number(), timestamp IDs
-  // exceed JS safe integer range and lose precision under Number().
   const id = row.id != null ? String(row.id) : String(Date.now());
   return {
-    id,                          // keep as string throughout
+    id,
     type: row.type || 'other',
     sev: row.severity || 'medium',
     city: row.city || 'Ottawa',
@@ -675,6 +673,7 @@ function dbRowToIssue(row) {
     lng: row.lng,
     addr: row.addr || '',
     desc: row.description || '',
+    ward: row.ward || null,        // ← THIS WAS MISSING
     votes: row.votes || 0,
     resolved: row.resolved || false,
     resolveVotes: row.resolve_votes || 0,
@@ -1001,7 +1000,7 @@ async function submitReport() {
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
 
-  const addr = document.getElementById('addr-input').value.trim()
+const addr = document.getElementById('addr-input').value.trim()
              || pendingLat.toFixed(4) + ', ' + pendingLng.toFixed(4);
   const desc = document.getElementById('desc-input').value.trim()
              || (lang==='fr'?'Aucune description.':'No description.');
