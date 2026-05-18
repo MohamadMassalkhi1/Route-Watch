@@ -1,0 +1,30 @@
+[
+  {
+    "id": 100001,
+    "type": "pothole",
+    "sev": "high",
+    "city": "Ottawa",
+    "lat": 45.4215,
+    "lng": -75.6972,
+    "addr": "100 Bank St",
+    "desc": "Large pothole near crosswalk",
+    "votes": 3,
+    "resolve_votes": 0,
+    "resolved": false,
+    "created_at": "2026-05-14T12:00:00Z"
+  },
+  {
+    "id": 100002,
+    "type": "crack",
+    "sev": "medium",
+    "city": "Gatineau",
+    "lat": 45.4765,
+    "lng": -75.7013,
+    "addr": "200 Laurier Ave",
+    "desc": "Long crack along curb",
+    "votes": 1,
+    "resolve_votes": 0,
+    "resolved": false,
+    "created_at": "2026-05-13T09:30:00Z"
+  }
+]

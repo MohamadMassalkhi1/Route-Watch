@@ -957,6 +957,39 @@ map.on('click', e => {
   }).addTo(map);
 });
 
+async function getWardFromCoords(lat, lng) {
+  try {
+    const url = `https://maps.ottawa.ca/arcgis/rest/services/OpenData/political/MapServer/1/query?` +
+      `geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326` +
+      `&spatialRel=esriSpatialRelIntersects&outFields=NAME&returnGeometry=false&f=json`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.features && data.features.length > 0) return data.features[0].attributes.NAME || null;
+  } catch (e) { console.warn('Ward lookup failed', e); }
+  // Gatineau fallback by rough coordinates
+  if (lng < -75.84) return 'Aylmer';
+  if (lng < -75.76) return 'Gatineau';
+  if (lat > 45.44)  return 'Hull';
+  return null;
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { 'Accept-Language': lang === 'fr' ? 'fr' : 'en' } }
+    );
+    const data = await res.json();
+    const r = data.address;
+    // Build a clean street address from the response parts
+    const street = r.road || r.pedestrian || r.path || null;
+    const number = r.house_number ? r.house_number + ' ' : '';
+    const city   = r.city || r.town || r.village || '';
+    if (street) return `${number}${street}, ${city}`.trim().replace(/,\s*$/, '');
+  } catch (e) { console.warn('Reverse geocode failed', e); }
+  return null;
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // SUBMIT REPORT
 // ══════════════════════════════════════════════════════════════════════════
@@ -1041,16 +1074,18 @@ async function voteIssue(id) {
 async function voteResolve(id) {
   if (resolveVoted.has(id)) { showToast(t('toastAlreadyResolved'), ''); return; }
   resolveVoted.add(id); saveLocalVotes();
-  const issue = issues.find(i => i.id === id);
-  if (!issue) return;
-  issue.resolveVotes = (issue.resolveVotes || 0) + 1;
-  const autoResolve = issue.resolveVotes >= RESOLVE_THRESHOLD;
-  if (autoResolve) issue.resolved = true;
+
   if (db && db.incrementResolveVotes) {
-    try { await db.incrementResolveVotes(id, RESOLVE_THRESHOLD); } catch(e){ console.error(e); }
+    try {
+      await db.incrementResolveVotes(id, RESOLVE_THRESHOLD);
+      showToast(t('toastResolveCast'), 'success');
+    } catch(e) {
+      console.error(e);
+      resolveVoted.delete(id); saveLocalVotes();
+      showToast('⚠️ Failed to record resolve vote', 'error');
+    }
   }
-  renderAll();
-  showToast(autoResolve ? t('toastResolvedAuto') : t('toastResolveCast'), 'success');
+  // Don't touch local issues[] — let the Firestore snapshot update it
 }
 
 // ══════════════════════════════════════════════════════════════════════════
