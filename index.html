@@ -1000,16 +1000,17 @@ async function submitReport() {
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
 
-const addr = document.getElementById('addr-input').value.trim()
-             || pendingLat.toFixed(4) + ', ' + pendingLng.toFixed(4);
+const manualAddr = document.getElementById('addr-input').value.trim();
   const desc = document.getElementById('desc-input').value.trim()
              || (lang==='fr'?'Aucune description.':'No description.');
   const city = document.getElementById('city-select').value;
 
-let ward = null;
-try {
-  ward = await getWardFromCoords(pendingLat, pendingLng);
-} catch(e) { ward = null; }
+  // Run reverse geocode + ward lookup in parallel
+  const [geocodedAddr, ward] = await Promise.all([
+    manualAddr ? Promise.resolve(null) : reverseGeocode(pendingLat, pendingLng).catch(() => null),
+    getWardFromCoords(pendingLat, pendingLng).catch(() => null),
+  ]);
+  const addr = manualAddr || geocodedAddr || `${pendingLat.toFixed(4)}, ${pendingLng.toFixed(4)}`;
 
 const issue = {
   id: Date.now(),
